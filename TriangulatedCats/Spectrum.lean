@@ -156,15 +156,18 @@ variable (C : Type*) [Category C] [Preadditive C] [HasZeroObject C] [HasShift C 
 
 structure SupportDatum where
 X : Type*
-[hX : TopologicalSpace X]
+hX : TopologicalSpace X
 supp : C → Closeds X
 supp_zero : supp 0 = ⊥
 supp_biprod (a b : C) : supp (a ⊞ b) = supp (a) ⊔ supp (b)
 supp_shift (a : C) : supp (a⟦(1 : ℤ)⟧) = supp (a)
 supp_obj₃ {T : Triangle C} (hT : T ∈ distTriang C) : supp (T.obj₃) ≤ supp (T.obj₁) ⊔ supp (T.obj₂)
 
+instance SupportDatum.TopologicalSpace (X : SupportDatum C) : TopologicalSpace X.X := X.hX
+
 def UnivSupport : SupportDatum C where
 X := ThickSubcategory C
+hX := inferInstance
 supp a := ⟨Z {a}, by use {a}; simp⟩
 supp_zero := by ext; simp
 supp_biprod a b := by
@@ -189,5 +192,17 @@ supp_obj₃ {T} hT := by
   . left
     simpa
 
+structure SupportDatumHom (X Y : SupportDatum C) where
+f : X.X → Y.X
+cont : Continuous f
+supp : ∀ a : C, X.supp a = f⁻¹' Y.supp a
+
+instance : Category (SupportDatum C) where
+Hom X Y := SupportDatumHom C X Y
+id X := { f := id, cont := continuous_id, supp a := rfl}
+comp {X Y Z} f g :=
+  { f := g.f ∘ f.f, cont := Continuous.comp g.cont f.cont, supp a := by ext; simp [f.supp, g.supp]}
+
+def isTerminal_UnivSupportDatum : IsTerminal (UnivSupport C) := sorry
 
 end supportdatum
