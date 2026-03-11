@@ -158,29 +158,30 @@ structure SupportDatum where
 X : Type*
 hX : TopologicalSpace X
 supp : C → Closeds X
-supp_zero : supp 0 = ⊥
-supp_biprod (a b : C) : supp (a ⊞ b) = supp (a) ⊔ supp (b)
-supp_shift (a : C) : supp (a⟦(1 : ℤ)⟧) = supp (a)
-supp_obj₃ {T : Triangle C} (hT : T ∈ distTriang C) : supp (T.obj₃) ≤ supp (T.obj₁) ⊔ supp (T.obj₂)
+supp_zero' : supp 0 = ⊥
+supp_biprod' (a b : C) : supp (a ⊞ b) = supp (a) ⊔ supp (b)
+supp_shift' (a : C) : supp (a⟦(1 : ℤ)⟧) = supp (a)
+supp_obj₃' {T : Triangle C} (hT : T ∈ distTriang C) : supp (T.obj₃) ≤ supp (T.obj₁) ⊔ supp (T.obj₂)
 
 instance SupportDatum.TopologicalSpace (X : SupportDatum C) : TopologicalSpace X.X := X.hX
 
+@[simps]
 def UnivSupport : SupportDatum C where
 X := ThickSubcategory C
 hX := inferInstance
 supp a := ⟨Z {a}, by use {a}; simp⟩
-supp_zero := by ext; simp
-supp_biprod a b := by
+supp_zero' := by ext; simp
+supp_biprod' a b := by
   ext P
   simp
   contrapose!
   exact ⟨fun h => ⟨P.smd_mem_left h, P.smd_mem_right h⟩, fun h => P.biprod_mem h.left h.right⟩
-supp_shift a := by
+supp_shift' a := by
   ext P
   simp
   contrapose!
   refine ⟨P.mem_of_shift_mem (i := 1), P.shift_mem (i := 1)⟩
-supp_obj₃ {T} hT := by
+supp_obj₃' {T} hT := by
   intro P hP₃
   simp at *
   by_cases hP₁ : T.obj₁ ∈ P
@@ -192,17 +193,93 @@ supp_obj₃ {T} hT := by
   . left
     simpa
 
+end supportdatum
+
+namespace SupportDatum
+
+variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
+  [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
+variable (X : SupportDatum C)
+
+example (a b : C) : a ⟶ b := 0
+
+@[simp]
+def supp_zero : X.supp 0 = ⊥ := X.supp_zero'
+def supp_biprod (a b : C) : X.supp (a ⊞ b) = X.supp (a) ⊔ X.supp (b) := X.supp_biprod' a b
+def supp_obj₁ {T : Triangle C} (hT : T ∈ distTriang C) : X.supp (T.obj₁) ≤ X.supp (T.obj₂) ⊔ X.supp (T.obj₃) := by
+  rw [←X.supp_shift' T.obj₁]
+  exact X.supp_obj₃' (T := T.rotate) (rot_of_distTriang T hT)
+def supp_obj₂ {T : Triangle C} (hT : T ∈ distTriang C) : X.supp (T.obj₂) ≤ X.supp (T.obj₁) ⊔ X.supp (T.obj₃) := by
+  rw [←X.supp_shift' T.obj₁, sup_comm]
+  exact X.supp_obj₁ (T := T.rotate) (rot_of_distTriang T hT)
+def supp_obj₃ {T : Triangle C} (hT : T ∈ distTriang C) : X.supp (T.obj₃) ≤ X.supp (T.obj₁) ⊔ X.supp (T.obj₂) := X.supp_obj₃' hT
+def supp_iso {a b : C} (h : Nonempty (a ≅ b)) : X.supp a = X.supp b := by
+  obtain ⟨φ⟩ := h
+  let T : Triangle C := Triangle.mk (Z := 0) φ.hom 0 0
+  have hT : T ∈ distTriang C := by
+    apply isomorphic_distinguished (contractibleTriangle a) (contractible_distinguished a)
+    apply Triangle.isoMk _ _ (Iso.refl a) (φ.symm) (Iso.refl 0)
+  apply le_antisymm
+  . convert X.supp_obj₁ hT
+    simp [T]
+  . convert X.supp_obj₂ hT
+    simp [T]
+@[simp]
+def supp_shift {i : ℤ} (a : C) : X.supp (a⟦i⟧) = X.supp (a) := by
+  induction i with
+  | zero => exact X.supp_iso ⟨(shiftFunctorZero C ℤ).app a⟩
+  | succ i ih =>
+    rw [←ih]
+    exact Eq.trans (X.supp_iso ⟨(shiftFunctorAdd' C _ _ _ rfl).app a⟩) (X.supp_shift' _)
+  | pred i ih =>
+    rw [←ih]
+    symm
+    exact Eq.trans (X.supp_iso ⟨(shiftFunctorAdd' C _ _ _ (sub_add_cancel _ _)).app a⟩) (X.supp_shift' _)
+
 structure SupportDatumHom (X Y : SupportDatum C) where
 f : X.X → Y.X
 cont : Continuous f
 supp : ∀ a : C, X.supp a = f⁻¹' Y.supp a
 
 instance : Category (SupportDatum C) where
-Hom X Y := SupportDatumHom C X Y
+Hom X Y := SupportDatumHom X Y
 id X := { f := id, cont := continuous_id, supp a := rfl}
 comp {X Y Z} f g :=
   { f := g.f ∘ f.f, cont := Continuous.comp g.cont f.cont, supp a := by ext; simp [f.supp, g.supp]}
 
-def isTerminal_UnivSupportDatum : IsTerminal (UnivSupport C) := sorry
+def isTerminal_UnivSupportDatum : IsTerminal (UnivSupport C) := IsTerminal.ofUniqueHom
+  (fun X =>
+    { f x :=
+      { carrier := {a | x ∉ (X.supp a)},
+        zero_mem' := by
+          simp
+          apply Set.notMem_empty,
+        shift_mem' {i} {a} (ha : x ∉ _) := by
+          rw [←X.supp_shift a] at ha
+          exact ha
+        iso_mem' {a} {b} (ha : x ∉ _) (h) := by
+          rw [X.supp_iso h] at ha
+          exact ha,
+        obj₃_mem' {T} hT (h₁ : x ∉ X.supp T.obj₁) (h₂ : x ∉ X.supp T.obj₂) := by
+          intro h₃
+          cases X.supp_obj₃ hT h₃
+          . apply h₁
+            assumption
+          . apply h₂
+            assumption
+        smd_mem' {a} {b} (hab : _ ∉ _) := by
+          intro ha
+          apply hab
+          rw [X.supp_biprod]
+          left
+          exact ha
+      }
+      cont := by
+        rw [continuous_iff_isClosed]
+        intro s hs
+        sorry
+      supp a := sorry
+    })
+  sorry
 
-end supportdatum
+end SupportDatum
