@@ -42,13 +42,30 @@ def star_assoc [IsTriangulated C] (I J K : Set C) : I ⋆ J ⋆ K = I ⋆ (J ⋆
   . rintro ⟨b₁, hb₁, b₂, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, f, g, h, H⟩
     obtain ⟨c₂, h'', f'', H''⟩ := distinguished_cocone_triangle (g ≫ g')
     obtain ⟨O⟩ := IsTriangulated.octahedron_axiom (rfl) (rot_of_distTriang _ H) (rot_of_distTriang _ H') (H'')
-    refine ⟨c₂⟦-1⟧, ⟨b₁, hb₁, a₁, ha₁, ?_, ?_, -f' ≫ h, ?_⟩, a₂, ha₂, _, _, _, inv_rot_of_distTriang _ H''⟩
+    refine ⟨c₂⟦-1⟧, ⟨b₁, hb₁, a₁, ha₁, ?_, ?_, f' ≫ h, ?_⟩, a₂, ha₂, _, _, _, inv_rot_of_distTriang _ H''⟩
     . exact -(shiftShiftNeg _ _).inv ≫ (O.m₁⟦-1⟧')
     . exact -(O.m₃⟦-1⟧') ≫ (shiftShiftNeg _ _).hom
     . apply isomorphic_distinguished _ (Triangle.shift_distinguished _ O.mem (-1))
       apply Triangle.isoMk _ _ (shiftShiftNeg b₁ (1 : ℤ)).symm (Iso.refl (c₂⟦-1⟧)) (shiftShiftNeg a₁ (1 : ℤ)).symm
-        (comm₃ := sorry)
-
+        (comm₃ := by
+          simp
+          show f' ≫ h ≫ ((shiftFunctorCompIsoId C 1 (-1) _).inv.app b₁)⟦(1 : ℤ)⟧' =
+            (shiftFunctorCompIsoId C 1 (-1) _).inv.app a₁ ≫ f'⟦(1:ℤ)⟧'⟦-1⟧' ≫ h⟦(1 : ℤ)⟧'⟦-1⟧' ≫
+            (shiftFunctorComm C 1 (-1)).hom.app (b₁⟦1⟧)
+          have HH (hh) (hh'): ((shiftFunctorCompIsoId C 1 (-1) hh).inv.app b₁)⟦(1 : ℤ)⟧' =
+            (shiftFunctorCompIsoId C 1 (-1) hh').inv.app (b₁⟦(1 : ℤ)⟧) ≫ (shiftFunctorComm C 1 (-1)).hom.app (b₁⟦1⟧) := by
+              rw [shift_shiftFunctorCompIsoId_inv_app]
+              simp [shiftFunctorCompIsoId, shiftFunctorComm]
+              rw [←assoc]
+              convert (id_comp _).symm
+              rw [←NatTrans.comp_app, ← shiftFunctorAdd'_eq_shiftFunctorAdd]
+              simp
+          rw [HH (add_neg_cancel _) (add_neg_cancel _),←assoc,←assoc,←assoc,←assoc]
+          congr 1
+          nth_rewrite 2 [assoc]
+          rw [←Functor.map_comp, ←Functor.map_comp]
+          apply NatTrans.naturality (shiftFunctorCompIsoId C 1 (-1) _).inv
+        )
 
 def dia (I J : Set C) : Set C := smd (star' I J)
 
