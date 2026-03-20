@@ -1,6 +1,6 @@
-import Mathlib.CategoryTheory.Triangulated.Subcategory
-import Mathlib.CategoryTheory.ConcreteCategory.Basic
+import TriangulatedCats.ThickSubcategory
 import Mathlib.Topology.Sets.Closeds
+import Mathlib.CategoryTheory.ConcreteCategory.Basic
 
 /-
   Define basic definitions for Matsui spectra
@@ -13,68 +13,6 @@ import Mathlib.Topology.Sets.Closeds
 
 open CategoryTheory
 open Limits Category Preadditive Pretriangulated ZeroObject
-
-section thick
-
-variable (C : Type*) [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
-  [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
-
-@[ext]
-structure ThickSubcategory where
-carrier : Set C
-zero_mem' : 0 ∈ carrier
-shift_mem' {i : ℤ} {X : C} : X ∈ carrier → (X⟦i⟧) ∈ carrier
-iso_mem' {X Y : C} : X ∈ carrier → Nonempty (X ≅ Y) → Y ∈ carrier
-obj₃_mem' {T : Triangle C} : T ∈ distTriang C → T.obj₁ ∈ carrier → T.obj₂ ∈ carrier → T.obj₃ ∈ carrier
-smd_mem' {X Y : C} : (X ⊞ Y) ∈ carrier → X ∈ carrier
-
-instance : SetLike (ThickSubcategory C) C where
-  coe X := X.carrier
-  coe_injective' X Y (h : X.carrier = Y.carrier) := by ext; rw [h]
-
-variable (P : ThickSubcategory C)
-
-end thick
-
-
-namespace ThickSubcategory
-
-
-variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
-  [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
-variable (P : ThickSubcategory C)
-
-@[simp]
-theorem zero_mem : 0 ∈ P := P.zero_mem'
-
-theorem shift_mem {i : ℤ} {X : C} (hX : X ∈ P) : X⟦i⟧ ∈ P := P.shift_mem' hX
-theorem mem_of_shift_mem {i : ℤ} {X : C} (hX : X⟦i⟧ ∈ P) : X ∈ P := by
-  refine P.iso_mem' (?_ : X⟦i⟧⟦-i⟧ ∈ P) (?_)
-  apply P.shift_mem' hX
-  constructor
-  trans
-  symm
-  exact (shiftFunctorAdd C (i) (-i)).app X
-  rw [add_neg_cancel]
-  exact (shiftFunctorZero C ℤ).app X
-
-theorem iso_mem {X Y : C} (hX : X ∈ P) (hXY : Nonempty (X ≅ Y)) : Y ∈ P := P.iso_mem' hX hXY
-
-theorem obj₁_mem {T : Triangle C} (hT : T ∈ distTriang C) (h₂ : T.obj₂ ∈ P) (h₃ : T.obj₃ ∈ P) : T.obj₁ ∈ P :=
-  P.mem_of_shift_mem (P.obj₃_mem' (T := T.rotate) (rot_of_distTriang T hT) h₂ h₃)
-
-theorem obj₂_mem {T : Triangle C} (hT : T ∈ distTriang C) (h₁ : T.obj₁ ∈ P) (h₃ :T.obj₃ ∈ P) : T.obj₂ ∈ P :=
-  P.obj₁_mem (T := T.rotate) (rot_of_distTriang T hT) h₃ (P.shift_mem' h₁)
-
-theorem obj₃_mem {T : Triangle C} : T ∈ distTriang C →  T.obj₁ ∈ P → T.obj₂ ∈ P → T.obj₃ ∈ P := P.obj₃_mem'
-
-theorem biprod_mem {X Y : C} (hX : X ∈ P) (hY : Y ∈ P) : (X ⊞ Y) ∈ P :=
-  P.obj₂_mem (binaryBiproductTriangle_distinguished X Y) hX hY
-theorem smd_mem_left {X Y : C} (hXY : (X ⊞ Y) ∈ P) : X ∈ P := P.smd_mem' hXY
-theorem smd_mem_right {X Y : C} (hXY : (X ⊞ Y) ∈ P) : Y ∈ P := P.smd_mem' (P.iso_mem hXY ⟨biprod.braiding X Y⟩)
-
-end ThickSubcategory
-
 
 section topology
 
