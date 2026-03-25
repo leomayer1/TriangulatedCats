@@ -1,4 +1,5 @@
 import TriangulatedCats.ThickSubcategory
+import TriangulatedCats.BiprodTriangle
 import Mathlib.CategoryTheory.ObjectProperty.Shift
 
 
@@ -226,7 +227,9 @@ instance [IsClosedUnderBiprod I] [IsClosedUnderIsomorphisms I] : IsClosedUnderBi
 instance [IsClosedUnderBiprod I] [IsClosedUnderBiprod J] : IsClosedUnderBiprod (I ⋆ J) := by
   constructor
   rintro c c' ⟨a, ha, b, hb, f, g, h, H⟩ ⟨a', ha', b', hb', f', g', h', H'⟩
-  sorry
+  refine ⟨_, ?_, _, ?_, _, _, _, dist_biprodTriangle H H'⟩
+  apply of_biprod (P := I) ha ha'
+  apply of_biprod (P := J) hb hb'
 
 @[simp]
 theorem addc_eq_self [ContainsZero I] [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ]
@@ -240,10 +243,50 @@ theorem addc_eq_self [ContainsZero I] [IsClosedUnderIsomorphisms I] [IsStableUnd
   | biprod' a b _ _ iha ihb => exact of_biprod (P := I) iha ihb
 
 @[simp]
-theorem smd_smd_star : smd (smd I ⋆ J) = smd (I ⋆ J) := sorry
+theorem smd_smd_star : smd (smd I ⋆ J) = smd (I ⋆ J) := by
+  have := preservesBinaryBiproducts_of_preservesBinaryProducts (shiftFunctor C (1 : ℤ))
+  apply le_antisymm (fun c hc => ?_) (smd_mono (star_mono subset_smd le_rfl))
+  induction hc with
+  | of_mem' c hc =>
+    obtain ⟨a, ha, b, hb, f, g, h, H⟩ := hc
+    induction ha generalizing c with
+    | of_mem' a ha => exact smd.of_mem ⟨a, ha, b, hb, f, g, h, H⟩
+    | of_smd_left' a a' _ ih =>
+      apply smd.of_smd_left
+      apply ih (c ⊞ a') (biprod.map f (𝟙 a')) (biprod.desc g 0)
+          (biprod.lift h 0 ≫ (Functor.mapBiprod _ _ _).inv)
+      apply isomorphic_distinguished _ (dist_biprodTriangle H (contractible_distinguished a'))
+      apply Triangle.isoMk _ _ (Iso.refl (a ⊞ a')) (Iso.refl (c ⊞ a')) (isoBiprodZero (isZero_zero _))
+    | of_smd_right' a' a _ ih =>
+      apply smd.of_smd_right
+      apply ih (a' ⊞ c) (biprod.map (𝟙 a') f) (biprod.desc 0 g)
+          (biprod.lift 0 h ≫ (Functor.mapBiprod _ _ _).inv)
+      apply isomorphic_distinguished _ (dist_biprodTriangle (contractible_distinguished a') H)
+      apply Triangle.isoMk _ _ (Iso.refl (a' ⊞ a)) (Iso.refl (a' ⊞ c)) (isoZeroBiprod (isZero_zero _))
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left ih
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right ih
 
 @[simp]
-theorem smd_star_smd : smd (I ⋆ smd J) = smd (I ⋆ J) := sorry
+theorem smd_star_smd : smd (I ⋆ smd J) = smd (I ⋆ J) := by
+  have := preservesBinaryBiproducts_of_preservesBinaryProducts (shiftFunctor C (1 : ℤ))
+  apply le_antisymm (fun c hc => ?_) (smd_mono (star_mono le_rfl subset_smd))
+  induction hc with
+  | of_mem' c hc =>
+    obtain ⟨a, ha, b, hb, f, g, h, H⟩ := hc
+    induction hb generalizing c with
+    | of_mem' b hb => exact smd.of_mem ⟨a, ha, b, hb, f, g, h, H⟩
+    | of_smd_left' b b' _ ih =>
+      apply smd.of_smd_left
+      apply ih (c ⊞ b') (biprod.lift f 0) (biprod.map g (𝟙 b')) (biprod.desc h 0)
+      apply isomorphic_distinguished _ (dist_biprodTriangle H (contractible_distinguished₁ b'))
+      apply Triangle.isoMk _ _ (isoBiprodZero (isZero_zero _)) (Iso.refl (c ⊞ b')) (Iso.refl (b ⊞ b'))
+    | of_smd_right' b' b _ ih =>
+      apply smd.of_smd_right
+      apply ih (b' ⊞ c) (biprod.lift 0 f) (biprod.map (𝟙 _) g) (biprod.desc 0 h)
+      apply isomorphic_distinguished _ (dist_biprodTriangle (contractible_distinguished₁ b') H)
+      apply Triangle.isoMk _ _ (isoZeroBiprod (isZero_zero _)) (Iso.refl (b' ⊞ c)) (Iso.refl (b' ⊞ b))
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left ih
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right ih
 
 @[simp]
 theorem smd_smd : smd (smd I) = smd I := by
