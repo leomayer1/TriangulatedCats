@@ -5,6 +5,15 @@ import Mathlib.CategoryTheory.ObjectProperty.Shift
 open CategoryTheory
 open Limits Category Preadditive Pretriangulated ZeroObject ObjectProperty
 
+namespace CategoryTheory.ObjectProperty
+
+variable {C : Type*} [Category C] [HasZeroMorphisms C] [HasBinaryBiproducts C] (P : ObjectProperty C)
+
+class IsClosedUnderBiprod where
+  of_biprod {a b : C} (ha : P a) (hb : P b) : P (a ⊞ b)
+
+end ObjectProperty
+
 section defs
 
 variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
@@ -13,22 +22,22 @@ variable (I J K : Set C)
 
 inductive addc : Set C
 | zero : addc 0
-| of_mem {a : C} : I a → addc a
-| of_shift {i : ℤ} {a : C} : addc a → addc (a⟦i⟧)
-| of_iso {a b : C} : addc a → Nonempty (a ≅ b) → addc b
-| biprod {a b : C} : addc a → addc b → addc (a ⊞ b)
+| of_mem' (a : C) : I a → addc a
+| of_shift' (i : ℤ) (a : C) : addc a → addc (a⟦i⟧)
+| of_iso' (a b : C) : addc a → (a ≅ b) → addc b
+| biprod' (a b : C) : addc a → addc b → addc (a ⊞ b)
 
 inductive smd : Set C
-| of_mem {a : C} : I a → smd a
-| of_smd_left {a b : C} : smd (a ⊞ b) → smd a
-| of_smd_right {a b : C} : smd (a ⊞ b) → smd b
+| of_mem' (a : C) : I a → smd a
+| of_smd_left' (a b : C) : smd (a ⊞ b) → smd a
+| of_smd_right' (a b : C) : smd (a ⊞ b) → smd b
 
 def star' : Set C :=
   {c | ∃ a ∈ I, ∃ b ∈ J, ∃ f : a ⟶ c, ∃ g : c ⟶ b, ∃ h : b ⟶ a⟦1⟧, Triangle.mk f g h ∈ distTriang C}
 
 infixl:60 " ⋆ " => star'
 
-def star_assoc [IsTriangulated C] : I ⋆ J ⋆ K = I ⋆ (J ⋆ K) := by
+theorem star_assoc [IsTriangulated C] : I ⋆ J ⋆ K = I ⋆ (J ⋆ K) := by
   ext c
   constructor
   . rintro ⟨b₁, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, b₂, hb₂, f, g, h, H⟩
@@ -89,6 +98,16 @@ variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C 
 variable {I J K : Set C}
 variable (n m : ℕ)
 
+theorem addc.of_mem {a : C} (ha : a ∈ I) : a ∈ addc I := addc.of_mem' a ha
+theorem addc.of_shift {i : ℤ} {a : C} (ha : a ∈ addc I) : a⟦i⟧ ∈ addc I := addc.of_shift' i a ha
+theorem addc.of_iso {a b : C} (ha : a ∈ addc I) (φ : a ≅ b) : b ∈ addc I := addc.of_iso' a b ha φ
+theorem addc.biprod {a b : C} (ha : a ∈ addc I) (hb : b ∈ addc I) : (a ⊞ b) ∈ addc I :=
+  addc.biprod' a b ha hb
+
+theorem smd.of_mem {a : C} (ha : a ∈ I) : a ∈ smd I := smd.of_mem' a ha
+theorem smd.of_smd_left {a b : C} (hab : (a ⊞ b) ∈ smd I) : a ∈ smd I := smd.of_smd_left' a b hab
+theorem smd.of_smd_right {a b : C} (hab : (a ⊞ b) ∈ smd I) : b ∈ smd I := smd.of_smd_right' a b hab
+
 theorem subset_smd : I ⊆ smd I := fun _ hx => smd.of_mem hx
 theorem subset_addc : I ⊆ addc I := fun _ hx => addc.of_mem hx
 
@@ -99,17 +118,17 @@ theorem addc_mono : Monotone (addc (C := C)) := by
   intro I J hIJ a ha
   induction ha with
   | zero => exact addc.zero
-  | of_mem ha => exact addc.of_mem (hIJ ha)
-  | of_shift ha ih => exact addc.of_shift ih
-  | of_iso ha hab ih => exact addc.of_iso ih hab
-  | biprod _ _ iha ihb => exact addc.biprod iha ihb
+  | of_mem' _ ha => exact addc.of_mem (hIJ ha)
+  | of_shift' _ _ ha ih => exact addc.of_shift ih
+  | of_iso' _ _ ha hab ih => exact addc.of_iso ih hab
+  | biprod' _ _ _ _ iha ihb => exact addc.biprod iha ihb
 
 theorem smd_mono : Monotone (smd (C := C)) := by
   intro I J hIJ a ha
   induction ha with
-  | of_mem ha => exact smd.of_mem (hIJ ha)
-  | of_smd_left _ ih => exact smd.of_smd_left ih
-  | of_smd_right _ ih => exact smd.of_smd_right ih
+  | of_mem' _ ha => exact smd.of_mem (hIJ ha)
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left ih
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right ih
 
 theorem star_mono {I I' J J' : Set C} (hI : I ≤ I') (hJ : J ≤ J') : I ⋆ J ≤ I' ⋆ J' := by
   rintro X ⟨a, ha, b, hb, f, g, h, H⟩
@@ -124,6 +143,9 @@ theorem subset_dia_left : I ⊆ I ⋄ J := le_trans (subset_smd) (smd_mono
 theorem subset_dia_right : J ⊆ I ⋄ J := le_trans (subset_smd) (smd_mono
   (fun x hx => ⟨0, addc.zero, x, addc.of_mem hx, _, _, _, contractible_distinguished₁ x⟩))
 
+theorem star_subset_dia : I ⋆ J ⊆ I ⋄ J := le_trans subset_smd
+    (smd_mono (star_mono (subset_addc) (subset_addc)))
+
 theorem level_mono : Monotone (level I) := monotone_nat_of_le_succ (fun _ => subset_dia_left)
 
 theorem level_mono' (h : I ≤ J) (n : ℕ) : (⟪I⟫' n) ≤ ⟪J⟫' n := by
@@ -135,23 +157,41 @@ theorem thick_cl_mono (h : I ≤ J) : ⟪I⟫ ≤ ⟪J⟫ := Set.iUnion_mono (fu
 
 open IsClosedUnderIsomorphisms
 open IsStableUnderShift
+open IsClosedUnderBiprod
+open ContainsZero
 
-instance : IsClosedUnderIsomorphisms (addc I) := ⟨fun φ ha => addc.of_iso ha ⟨φ⟩⟩
+instance : ContainsZero (addc I) := ⟨⟨0, isZero_zero _, addc.zero,⟩⟩
+instance [ContainsZero I] [IsClosedUnderIsomorphisms I] : ContainsZero (smd I) := by
+  obtain ⟨z, hz, hI⟩ := exists_zero (P := I)
+  exact ⟨z, hz, smd.of_mem hI⟩
+
+instance [ContainsZero I] [ContainsZero J] : ContainsZero (I ⋆ J) := by
+  obtain ⟨a, ha, haI⟩ := exists_zero (P := I)
+  obtain ⟨b, hb, hbJ⟩ := exists_zero (P := J)
+  refine ⟨a, ha, ⟨a, haI, b, hbJ, (𝟙 a), 0, 0, ?_⟩⟩
+  refine isomorphic_distinguished _ (contractible_distinguished a) _ ?_
+  exact Triangle.isoMk _ _ (Iso.refl _) (Iso.refl _) hb.isoZero
+
+instance : IsClosedUnderIsomorphisms (addc I) := ⟨fun φ ha => addc.of_iso ha φ⟩
 instance [IsClosedUnderIsomorphisms I] : IsClosedUnderIsomorphisms (smd I) := by
   refine ⟨fun {X Y} φ ha => ?_⟩
   induction ha generalizing Y with
-  | of_mem h => exact smd.of_mem (of_iso φ h)
-  | of_smd_left _ ih => exact smd.of_smd_left (ih (biprod.mapIso φ (Iso.refl _)))
-  | of_smd_right _ ih => exact smd.of_smd_right (ih (biprod.mapIso (Iso.refl _) φ))
+  | of_mem' _ h => exact smd.of_mem (of_iso (P := I) φ h)
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left (ih (biprod.mapIso φ (Iso.refl _)))
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right (ih (biprod.mapIso (Iso.refl _) φ))
 
 instance : IsStableUnderShift (addc I) ℤ := ⟨fun _ => ⟨fun _ ha => addc.of_shift ha⟩⟩
 instance [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : IsStableUnderShift (smd I) ℤ := by
   refine ⟨fun i => ⟨fun a ha => ?_⟩⟩
   have := preservesBinaryBiproducts_of_preservesBinaryProducts (shiftFunctor C i)
   induction ha with
-  | of_mem h => exact smd.of_mem (le_shift _ _ _ h)
-  | of_smd_left _ ih => exact smd.of_smd_left (of_iso (Functor.mapBiprod _ _ _) ih)
-  | of_smd_right _ ih => exact smd.of_smd_right (of_iso (Functor.mapBiprod _ _ _) ih)
+  | of_mem' _ h => exact smd.of_mem (le_shift (P := I) _ _ h)
+  | of_smd_left' _ _ _ ih =>
+    apply smd.of_smd_left
+    apply (of_iso (Functor.mapBiprod _ _ _) ih)
+  | of_smd_right' _ _ _ ih =>
+    apply smd.of_smd_right
+    apply (of_iso (Functor.mapBiprod _ _ _) ih)
 
 instance : IsClosedUnderIsomorphisms (I ⋆ J) := ⟨by
   rintro c c' φ ⟨a, ha, b, hb, f, g, h, H⟩
@@ -164,6 +204,54 @@ instance [IsStableUnderShift I ℤ] [IsStableUnderShift J ℤ] : IsStableUnderSh
     refine ⟨a⟦i⟧, ?_, b⟦i⟧, ?_, _, _, _, Triangle.shift_distinguished _ H i⟩
     exact le_shift I i a ha
     exact le_shift J i b hb⟩⟩
+
+instance : IsClosedUnderBiprod (addc I) := ⟨addc.biprod⟩
+instance [IsClosedUnderBiprod I] [IsClosedUnderIsomorphisms I] : IsClosedUnderBiprod (smd I) := ⟨fun ha hb => by
+  induction ha with
+  | of_mem' a ha =>
+    induction hb with
+    | of_mem' b hb => exact smd.of_mem (of_biprod (P := I) ha hb)
+    | of_smd_left' b b' hb ih =>
+      apply smd.of_smd_left (b := b') (of_iso (P := smd I) (biprod.associator a b b').symm ih)
+    | of_smd_right' b b' hb ih =>
+      apply smd.of_smd_right (a := b) (of_iso (P := smd I) ?_ ih)
+      exact (biprod.associator a b b').symm ≪≫
+        biprod.mapIso (biprod.braiding _ _) (Iso.refl _) ≪≫ biprod.associator b a b'
+  | of_smd_left' a a' ha ih =>
+    apply smd.of_smd_right (a := a') (of_iso (P := smd I) ?_ ih)
+    exact biprod.mapIso (biprod.braiding _ _) (Iso.refl _) ≪≫ biprod.associator _ _ _
+  | of_smd_right' a a' hb ih =>
+    apply smd.of_smd_right (a := a) (of_iso (P := smd I) (biprod.associator _ _ _) ih)⟩
+
+instance [IsClosedUnderBiprod I] [IsClosedUnderBiprod J] : IsClosedUnderBiprod (I ⋆ J) := by
+  constructor
+  rintro c c' ⟨a, ha, b, hb, f, g, h, H⟩ ⟨a', ha', b', hb', f', g', h', H'⟩
+  sorry
+
+@[simp]
+theorem addc_eq_self [ContainsZero I] [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ]
+    [IsClosedUnderBiprod I] : addc I = I := by
+  refine le_antisymm (fun a ha => ?_) subset_addc
+  induction ha with
+  | zero => exact prop_zero (P := I)
+  | of_mem' _ ha => exact ha
+  | of_shift' _ _ _ ih => exact le_shift (P := I) _ _ ih
+  | of_iso' a b _ φ ih => exact of_iso (P := I) φ ih
+  | biprod' a b _ _ iha ihb => exact of_biprod (P := I) iha ihb
+
+@[simp]
+theorem smd_smd_star : smd (smd I ⋆ J) = smd (I ⋆ J) := sorry
+
+@[simp]
+theorem smd_star_smd : smd (I ⋆ smd J) = smd (I ⋆ J) := sorry
+
+@[simp]
+theorem smd_smd : smd (smd I) = smd I := by
+  apply le_antisymm (fun a ha => ?_) subset_smd
+  induction ha with
+  | of_mem' a ha => exact ha
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left ih
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right ih
 
 theorem star_eq₂ : I ⋆ J = {c | ∃ a ∈ I, ∃ b ∈ J, ∃ f : a ⟶ c, ∃ g : c ⟶ b, ∃ h : b ⟶ a⟦1⟧,
     Triangle.mk f g h ∈ distTriang C} := rfl
@@ -189,21 +277,78 @@ theorem star_eq₃ [IsStableUnderShift J ℤ] : I ⋆ J = {c | ∃ b ∈ J, ∃ 
 theorem level_of_smd_left {a b : C} (hab : (a ⊞ b) ∈ (⟪I⟫' n)) : a ∈ ⟪I⟫' n := by
   cases n <;> exact smd.of_smd_left hab
 
+instance : ContainsZero (⟪I⟫' n) := by cases n <;> infer_instance
 instance : IsClosedUnderIsomorphisms (⟪I⟫' n) := by cases n <;> infer_instance
 instance : IsStableUnderShift (⟪I⟫' n) ℤ := by cases n <;> infer_instance
+instance : IsClosedUnderBiprod (⟪I⟫' n) := by cases n <;> infer_instance
 
-theorem level_star_level : (level I n) ⋆ (level I m) ≤ level I (n + m) := by
-  sorry
+theorem addc_isZero : addc IsZero (C := C) = IsZero := by
+  refine le_antisymm (fun a ha => ?_) subset_addc
+  induction ha with
+  | zero => exact isZero_zero _
+  | of_mem' _ ha => exact ha
+  | of_shift' _ _ ha ih => exact Functor.map_isZero _ ih
+  | of_iso' _ _ ha φ ih => apply IsZero.of_iso ih φ.symm
+  | biprod' _ _ _ _ iha ihb => exact (biprod_isZero_iff _ _).mpr ⟨iha, ihb⟩
+
+theorem smd_isZero : smd IsZero (C := C) = IsZero := by
+  refine le_antisymm (fun a ha => ?_) subset_smd
+  induction ha with
+  | of_mem' _ ha => exact ha
+  | of_smd_left' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).left
+  | of_smd_right' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).right
+
+theorem star_isZero [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : I ⋆ IsZero = I := by
+  refine le_antisymm ?_ ?_
+  . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
+    have : IsIso f := (Triangle.isZero₃_iff_isIso₁ _ H).mp hb
+    apply of_iso (P := I) (asIso f) ha
+  . exact fun x hx => ⟨x, hx, 0, isZero_zero _, _, _, _, contractible_distinguished _⟩
+
+theorem isZero_star [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : IsZero ⋆ I = I := by
+  refine le_antisymm ?_ ?_
+  . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
+    have : IsIso g := (Triangle.isZero₁_iff_isIso₂ _ H).mp ha
+    refine of_iso (P := I) (asIso g).symm hb
+  . refine fun x hx => ⟨0, isZero_zero _, x, hx, _, _, _, contractible_distinguished₁ _⟩
+
+variable [IsTriangulated C]
+
+theorem dia_assoc : I ⋄ J ⋄ K = I ⋄ (J ⋄ K) := by
+  rw [dia, dia, dia, dia, addc_eq_self, smd_smd_star, addc_eq_self (I := smd _),
+    smd_star_smd, star_assoc]
+
+theorem level_dia_level : (⟪I⟫' n) ⋄ (⟪I⟫' m) = ⟪I⟫' (n + m) := by
+  induction m with
+  | zero =>
+    apply le_antisymm (le_trans (dia_mono le_rfl ?_) ?_) subset_dia_left
+    show smd (addc {0}) ≤ IsZero
+    . rw [←smd_isZero,←addc_isZero]
+      apply smd_mono (addc_mono ?_)
+      rintro _ rfl
+      exact isZero_zero _
+    . rw [dia, addc_eq_self, addc_isZero, star_isZero]
+      intro a ha
+      cases n <;> rwa [level, smd_smd] at ha
+  | succ m ih => rw [level, ←dia_assoc, ih, ←add_assoc]
 
 theorem level_level : level (level I n) m = level I (n * m) := by
-  sorry
+  induction m with
+  | zero => rfl
+  | succ m ih => rw [level, ih, level_dia_level, mul_add, mul_one]
 
 def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
   carrier := thick_cl' I
   zero_mem' := ⟨_, ⟨0, rfl⟩, smd.of_mem (addc.of_mem rfl)⟩
   shift_mem' {i a} := fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, le_shift (⟪I⟫' n) _ _ ha⟩
   iso_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ ⟨φ⟩ => ⟨_, ⟨n, rfl⟩, of_iso (P := ⟪I⟫' n) φ ha⟩
-  obj₃_mem' hT := sorry
+  obj₃_mem' hT := fun ⟨_, ⟨n, rfl⟩, h₁⟩ ⟨_, ⟨m, rfl⟩, h₂⟩ => by
+    refine ⟨_, ⟨m + n, rfl⟩, ?_⟩
+    show _ ∈ ⟪I⟫' (m + n)
+    rw [←level_dia_level]
+    apply star_subset_dia
+    rw [star_eq₃]
+    exact ⟨_, h₁, _, h₂, _, _, _, hT⟩
   smd_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, level_of_smd_left n ha⟩
 
 
@@ -213,5 +358,4 @@ end props
   · G generator ↔ ∀ support datum supp G = supp T
   · Def of dimension
   · Dense Functors and dimension decreasing
-
 -/
