@@ -90,6 +90,8 @@ notation " ⟪" I "⟫ " => thick_cl' I
 
 def is_generator (G : C) := ⟪{G}⟫ = ⊤
 
+def is_strong_generator (G : C) := ∃ (n : ℕ), (⟪{G}⟫' n) = ⊤
+
 end defs
 
 section props
