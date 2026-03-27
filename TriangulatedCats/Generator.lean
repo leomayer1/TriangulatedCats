@@ -1,6 +1,7 @@
 import TriangulatedCats.ThickSubcategory
 import TriangulatedCats.BiprodTriangle
 import Mathlib.CategoryTheory.ObjectProperty.Shift
+import Mathlib.Data.ENat.Lattice
 
 
 open CategoryTheory
@@ -90,7 +91,13 @@ notation " ⟪" I "⟫ " => thick_cl' I
 
 def is_generator (G : C) := ⟪{G}⟫ = ⊤
 
-def is_strong_generator (G : C) := ∃ (n : ℕ), (⟪{G}⟫' n) = ⊤
+def is_strong_generator (G : C) := Nonempty {n : ℕ | (⟪{G}⟫' n) = ⊤}
+
+noncomputable
+def gen_time {G : C} (_ : is_strong_generator G) := sInf {n | (⟪{G}⟫' (n + 1)) = ⊤}
+
+noncomputable
+def dimension := sInf { n : ℕ∞ | ∃ G : C, ∃ hG : is_strong_generator G, n = gen_time hG}
 
 end defs
 
@@ -148,6 +155,7 @@ theorem subset_dia_right : J ⊆ I ⋄ J := le_trans (subset_smd) (smd_mono
 
 theorem star_subset_dia : I ⋆ J ⊆ I ⋄ J := le_trans subset_smd
     (smd_mono (star_mono (subset_addc) (subset_addc)))
+
 
 theorem level_mono : Monotone (level I) := monotone_nat_of_le_succ (fun _ => subset_dia_left)
 
@@ -328,7 +336,7 @@ instance : IsStableUnderShift (⟪I⟫' n) ℤ := by cases n <;> infer_instance
 instance : IsClosedUnderBiprod (⟪I⟫' n) := by cases n <;> infer_instance
 
 theorem addc_isZero : addc IsZero (C := C) = IsZero := by
-  refine le_antisymm (fun a ha => ?_) subset_addc
+  apply le_antisymm (fun a ha => ?_) subset_addc
   induction ha with
   | zero => exact isZero_zero _
   | of_mem' _ ha => exact ha
@@ -337,25 +345,34 @@ theorem addc_isZero : addc IsZero (C := C) = IsZero := by
   | biprod' _ _ _ _ iha ihb => exact (biprod_isZero_iff _ _).mpr ⟨iha, ihb⟩
 
 theorem smd_isZero : smd IsZero (C := C) = IsZero := by
-  refine le_antisymm (fun a ha => ?_) subset_smd
+  apply le_antisymm (fun a ha => ?_) subset_smd
   induction ha with
   | of_mem' _ ha => exact ha
   | of_smd_left' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).left
   | of_smd_right' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).right
 
 theorem star_isZero [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : I ⋆ IsZero = I := by
-  refine le_antisymm ?_ ?_
+  apply le_antisymm ?_ ?_
   . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
     have : IsIso f := (Triangle.isZero₃_iff_isIso₁ _ H).mp hb
     apply of_iso (P := I) (asIso f) ha
   . exact fun x hx => ⟨x, hx, 0, isZero_zero _, _, _, _, contractible_distinguished _⟩
 
 theorem isZero_star [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : IsZero ⋆ I = I := by
-  refine le_antisymm ?_ ?_
+  apply le_antisymm ?_ ?_
   . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
     have : IsIso g := (Triangle.isZero₁_iff_isIso₂ _ H).mp ha
     refine of_iso (P := I) (asIso g).symm hb
   . refine fun x hx => ⟨0, isZero_zero _, x, hx, _, _, _, contractible_distinguished₁ _⟩
+
+@[simp]
+theorem level_zero : (⟪I⟫' 0) = IsZero := by
+  apply le_antisymm ?_ ?_
+  . rw [←smd_isZero,←addc_isZero]
+    apply smd_mono (addc_mono ?_)
+    rintro _ rfl
+    exact isZero_zero _
+  . exact fun a ha => of_iso (P := ⟪I⟫' 0) ha.isoZero.symm (smd.of_mem (addc.of_mem rfl))
 
 variable [IsTriangulated C]
 
@@ -366,15 +383,9 @@ theorem dia_assoc : I ⋄ J ⋄ K = I ⋄ (J ⋄ K) := by
 theorem level_dia_level : (⟪I⟫' n) ⋄ (⟪I⟫' m) = ⟪I⟫' (n + m) := by
   induction m with
   | zero =>
-    apply le_antisymm (le_trans (dia_mono le_rfl ?_) ?_) subset_dia_left
-    show smd (addc {0}) ≤ IsZero
-    . rw [←smd_isZero,←addc_isZero]
-      apply smd_mono (addc_mono ?_)
-      rintro _ rfl
-      exact isZero_zero _
-    . rw [dia, addc_eq_self, addc_isZero, star_isZero]
-      intro a ha
-      cases n <;> rwa [level, smd_smd] at ha
+    apply le_antisymm (le_trans (dia_mono le_rfl (le_of_eq level_zero)) ?_) subset_dia_left
+    rw [dia, addc_eq_self, addc_isZero, star_isZero]
+    cases n <;> rw [smd_smd]
   | succ m ih => rw [level, ←dia_assoc, ih, ←add_assoc]
 
 theorem level_level : level (level I n) m = level I (n * m) := by
@@ -386,7 +397,7 @@ def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
   carrier := thick_cl' I
   zero_mem' := ⟨_, ⟨0, rfl⟩, smd.of_mem (addc.of_mem rfl)⟩
   shift_mem' {i a} := fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, le_shift (⟪I⟫' n) _ _ ha⟩
-  iso_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ ⟨φ⟩ => ⟨_, ⟨n, rfl⟩, of_iso (P := ⟪I⟫' n) φ ha⟩
+  iso_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ φ => ⟨_, ⟨n, rfl⟩, of_iso (P := ⟪I⟫' n) φ ha⟩
   obj₃_mem' hT := fun ⟨_, ⟨n, rfl⟩, h₁⟩ ⟨_, ⟨m, rfl⟩, h₂⟩ => by
     refine ⟨_, ⟨m + n, rfl⟩, ?_⟩
     show _ ∈ ⟪I⟫' (m + n)
