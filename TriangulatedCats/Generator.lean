@@ -1,6 +1,7 @@
 import TriangulatedCats.ThickSubcategory
 import TriangulatedCats.BiprodTriangle
 import Mathlib.CategoryTheory.ObjectProperty.Shift
+import Mathlib.CategoryTheory.EssentialImage
 import Mathlib.Data.ENat.Lattice
 
 
@@ -13,6 +14,10 @@ variable {C : Type*} [Category C] [HasZeroMorphisms C] [HasBinaryBiproducts C] (
 
 class IsClosedUnderBiprod where
   of_biprod {a b : C} (ha : P a) (hb : P b) : P (a ⊞ b)
+
+class IsClosedUnderSmd where
+  of_smd_left {a b : C} (h : P (a ⊞ b)) : P a
+  of_smd_right {a b : C} (h : P (a ⊞ b)) : P b
 
 end ObjectProperty
 
@@ -91,13 +96,17 @@ notation " ⟪" I "⟫ " => thick_cl' I
 
 def is_generator (G : C) := ⟪{G}⟫ = ⊤
 
-def is_strong_generator (G : C) := Nonempty {n : ℕ | (⟪{G}⟫' n) = ⊤}
+def is_strong_generator (G : C) := ∃ n : ℕ, (⟪{G}⟫' (n + 1)) = ⊤
 
 noncomputable
-def gen_time {G : C} (_ : is_strong_generator G) := sInf {n | (⟪{G}⟫' (n + 1)) = ⊤}
+def gen_time (G : C) := sInf {n | (⟪{G}⟫' (n + 1)) = ⊤}
+
+#check ENat.sInf_eq_zero
 
 noncomputable
-def dimension := sInf { n : ℕ∞ | ∃ G : C, ∃ hG : is_strong_generator G, n = gen_time hG}
+def dimension (C : Type*) [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
+    [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C] :=
+  sInf { n : ℕ∞ | ∃ G : C, is_strong_generator G ∧ n = gen_time G}
 
 end defs
 
@@ -170,6 +179,7 @@ open IsClosedUnderIsomorphisms
 open IsStableUnderShift
 open IsClosedUnderBiprod
 open ContainsZero
+open IsClosedUnderSmd
 
 instance : ContainsZero (addc I) := ⟨⟨0, isZero_zero _, addc.zero,⟩⟩
 instance [ContainsZero I] [IsClosedUnderIsomorphisms I] : ContainsZero (smd I) := by
@@ -182,6 +192,8 @@ instance [ContainsZero I] [ContainsZero J] : ContainsZero (I ⋆ J) := by
   refine ⟨a, ha, ⟨a, haI, b, hbJ, (𝟙 a), 0, 0, ?_⟩⟩
   refine isomorphic_distinguished _ (contractible_distinguished a) _ ?_
   exact Triangle.isoMk _ _ (Iso.refl _) (Iso.refl _) hb.isoZero
+
+instance : IsClosedUnderSmd (smd I) := ⟨smd.of_smd_left, smd.of_smd_right⟩
 
 instance : IsClosedUnderIsomorphisms (addc I) := ⟨fun φ ha => addc.of_iso ha φ⟩
 instance [IsClosedUnderIsomorphisms I] : IsClosedUnderIsomorphisms (smd I) := by
@@ -329,11 +341,28 @@ theorem star_eq₃ [IsStableUnderShift J ℤ] : I ⋆ J = {c | ∃ b ∈ J, ∃ 
 
 theorem level_of_smd_left {a b : C} (hab : (a ⊞ b) ∈ (⟪I⟫' n)) : a ∈ ⟪I⟫' n := by
   cases n <;> exact smd.of_smd_left hab
+theorem level_of_smd_right {a b : C} (hab : (a ⊞ b) ∈ (⟪I⟫' n)) : b ∈ ⟪I⟫' n := by
+  cases n <;> exact smd.of_smd_right hab
 
 instance : ContainsZero (⟪I⟫' n) := by cases n <;> infer_instance
 instance : IsClosedUnderIsomorphisms (⟪I⟫' n) := by cases n <;> infer_instance
 instance : IsStableUnderShift (⟪I⟫' n) ℤ := by cases n <;> infer_instance
 instance : IsClosedUnderBiprod (⟪I⟫' n) := by cases n <;> infer_instance
+instance : IsClosedUnderSmd (⟪I⟫' n) := by cases n <;> infer_instance
+
+instance : ContainsZero ⟪I⟫ := ⟨⟨0, isZero_zero _, ⟨_, ⟨0, rfl⟩, smd.of_mem (addc.of_mem rfl)⟩⟩⟩
+instance : IsClosedUnderIsomorphisms ⟪I⟫ :=
+  ⟨fun φ ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, of_iso (P := ⟪I⟫' n) φ ha⟩⟩
+instance : IsStableUnderShift ⟪I⟫ ℤ :=
+  ⟨fun _ => ⟨fun _ => fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, le_shift (⟪I⟫' n) _ _ ha⟩⟩⟩
+instance : IsClosedUnderBiprod ⟪I⟫ :=
+  ⟨fun ⟨_, ⟨n, rfl⟩, ha⟩ ⟨_, ⟨m, rfl⟩, hb⟩ => ⟨_, ⟨n + m, rfl⟩, of_biprod (P := ⟪I⟫' n + m)
+    (level_mono (Nat.le_add_right _ _) ha)
+    (level_mono (Nat.le_add_left _ _) hb)
+  ⟩⟩
+instance : IsClosedUnderSmd ⟪I⟫ :=
+  ⟨fun ⟨_, ⟨n, rfl⟩, h⟩ => ⟨_, ⟨n, rfl⟩, of_smd_left (P := ⟪_⟫' n) h⟩,
+   fun ⟨_, ⟨n, rfl⟩, h⟩ => ⟨_, ⟨n, rfl⟩, of_smd_right (P := ⟪_⟫' n) h⟩⟩
 
 theorem addc_isZero : addc IsZero (C := C) = IsZero := by
   apply le_antisymm (fun a ha => ?_) subset_addc
@@ -396,8 +425,8 @@ theorem level_level : level (level I n) m = level I (n * m) := by
 def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
   carrier := thick_cl' I
   zero_mem' := ⟨_, ⟨0, rfl⟩, smd.of_mem (addc.of_mem rfl)⟩
-  shift_mem' {i a} := fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, le_shift (⟪I⟫' n) _ _ ha⟩
-  iso_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ φ => ⟨_, ⟨n, rfl⟩, of_iso (P := ⟪I⟫' n) φ ha⟩
+  shift_mem' {i a} ha := le_shift ⟪I⟫ i a ha
+  iso_mem' {a b} ha φ := of_iso (P := ⟪I⟫) φ ha
   obj₃_mem' hT := fun ⟨_, ⟨n, rfl⟩, h₁⟩ ⟨_, ⟨m, rfl⟩, h₂⟩ => by
     refine ⟨_, ⟨m + n, rfl⟩, ?_⟩
     show _ ∈ ⟪I⟫' (m + n)
@@ -410,8 +439,129 @@ def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
 
 end props
 
-/- 3-19 TODO
-  · G generator ↔ ∀ support datum supp G = supp T
-  · Def of dimension
-  · Dense Functors and dimension decreasing
+/- 3-27 TODO
+  · Dense Functors, dimension decreases under a dense functor
+
 -/
+
+namespace Functor
+
+variable {C D : Type*} [Category C] [Category D] [Preadditive C] [Preadditive D] [HasZeroObject C]
+  [HasZeroObject D] [HasShift C ℤ] [HasShift D ℤ] [∀ n : ℤ, Functor.Additive (shiftFunctor C n)]
+  [∀ n : ℤ, Functor.Additive (shiftFunctor D n)] [Pretriangulated C] [Pretriangulated D]
+variable {F : C ⥤ D} [F.CommShift ℤ] [F.IsTriangulated]
+variable (I J : Set C)
+variable {G : C}
+
+/- A functor `F : C ⥤ D` is dense if any object `d : D` is a summand of an object in the
+image of `F` -/
+def Dense := smd (essImage F) = ⊤
+
+theorem eq_top_of_contains_of_dense (hF : F.Dense) {I : Set D} [IsClosedUnderIsomorphisms I]
+  [IsClosedUnderSmd I] (hI : F.obj '' ⊤ ⊆ I) : I = ⊤ := by
+    open IsClosedUnderIsomorphisms IsClosedUnderSmd in
+    apply le_antisymm le_top
+    rw [←hF]
+    intro d hd
+    induction hd with
+    | of_mem' _ ha =>
+      obtain ⟨c, ⟨φ⟩⟩ := ha
+      apply of_iso (P := I) φ (hI ⟨c, trivial, rfl⟩)
+    | of_smd_left' _ _ _ ih => exact of_smd_left (P := I) ih
+    | of_smd_right' _ _ _ ih => exact of_smd_right (P := I) ih
+
+theorem functor_addc : F.obj '' (addc I) ⊆ addc (F.obj '' I) := by
+  rintro _ ⟨c, hc, rfl⟩
+  induction hc with
+  | zero => exact addc.of_iso addc.zero (IsZero.isoZero (F.map_isZero (isZero_zero _))).symm
+  | of_mem' a ha => exact addc.of_mem ⟨a, ha, rfl⟩
+  | of_shift' _ _ _ ih => exact addc.of_iso (addc.of_shift ih) ((F.commShiftIso _).app _).symm
+  | of_iso' _ _ _ φ ih => exact addc.of_iso ih (F.mapIso φ)
+  | biprod' _ _ _ _ iha ihb =>
+    apply addc.of_iso (addc.biprod iha ihb) --
+    have := preservesBinaryBiproducts_of_preservesBinaryProducts F
+    apply (F.mapBiprod _ _).symm
+
+-- theorem functor_smd : F.obj '' (smd I) ⊆ smd (F.obj '' I) := by
+--   rintro _ ⟨c, hc, rfl⟩
+--   induction hc with
+--   | of_mem' c hc => exact smd.of_mem ⟨c, hc, rfl⟩
+--   | of_smd_left' a b h ih =>
+--     sorry
+--   | of_smd_right' => sorry
+
+theorem functor_star : F.obj '' (I ⋆ J) ⊆ (F.obj '' I) ⋆ (F.obj '' J) := by
+  rintro _ ⟨b, ⟨a, ha, c, hc, f, g, h, H⟩, rfl⟩
+  refine ⟨_, ⟨a, ha, rfl⟩, _, ⟨c, hc, rfl⟩, _, _, _, F.map_distinguished _ H⟩
+
+theorem functor_dia : F.obj '' (I ⋄ J) ⊆ (F.obj '' I) ⋄ (F.obj '' J) := by
+  sorry
+
+theorem functor_level {n : ℕ} : F.obj '' (⟪I⟫' n) ⊆ ⟪F.obj '' I⟫' n := by
+  induction n with
+  | zero =>
+    rintro _ ⟨c, hc, rfl⟩
+    rw [level_zero] at hc ⊢
+    apply map_isZero F hc
+  | succ n ih => exact le_trans (functor_dia _ _) (dia_mono ih le_rfl)
+
+
+theorem functor_thick_cl' : F.obj '' ⟪I⟫ ⊆ ⟪F.obj '' I⟫ := by
+  rw [thick_cl', Set.image_iUnion]
+  apply Set.iUnion_mono (fun n => functor_level _)
+
+theorem functor_is_generator
+  (hF : F.Dense) (hG : is_generator G) : is_generator (F.obj G) := by
+  apply eq_top_of_contains_of_dense hF
+  rw [←hG, ←Set.image_singleton]
+  apply functor_thick_cl'
+
+theorem functor_is_strong_generator (hF : F.Dense) (hG : is_strong_generator G) : is_strong_generator (F.obj G) := by
+  obtain ⟨n, hn⟩ := hG
+  use n
+  apply eq_top_of_contains_of_dense hF
+  rw [←hn, ←Set.image_singleton]
+  apply functor_level
+
+theorem level_gen_time (hG : is_strong_generator G) : (⟪{G}⟫' (gen_time G + 1)) = ⊤ := by
+  obtain ⟨n, hn⟩ := hG
+  exact Nat.sInf_mem (s := {n | (⟪{G}⟫' (n + 1)) = ⊤}) ⟨n, hn⟩
+
+theorem gen_time_le {n : ℕ} (hG : (⟪{G}⟫' (n + 1)) = ⊤) : gen_time G ≤ n := Nat.sInf_le hG
+
+theorem dim_le_gen_time (hG : is_strong_generator G) : dimension C ≤ gen_time G := sInf_le ⟨G, hG, rfl⟩
+
+theorem exists_gen_of_dim_eq_cast {n : ℕ} (h : dimension C = n) :
+    ∃ G : C, is_strong_generator G ∧ gen_time G = dimension C := by
+  have H : dimension C < n + 1 := by
+    rw [h]
+    norm_cast
+    norm_num
+  rw [dimension, sInf_lt_iff] at H
+  obtain ⟨_, ⟨G, hG, rfl⟩, hn⟩ := H
+  refine ⟨G, hG, ?_⟩
+  apply le_antisymm _ (dim_le_gen_time hG)
+  rw [h]
+  norm_cast at *
+  rw [←Nat.lt_succ_iff]
+  exact hn
+
+theorem functor_gen_time (hF : F.Dense) (hG : is_strong_generator G) : gen_time (F.obj G) ≤ gen_time G := by
+  apply gen_time_le
+  apply eq_top_of_contains_of_dense hF
+  rw [←level_gen_time hG, ←Set.image_singleton]
+  apply functor_level
+
+theorem dim_le_of_dense' (hF : F.Dense) {n : ℕ∞} (hn : dimension C = n) : dimension D ≤ n := by
+  cases n with
+  | top => exact le_top
+  | coe n =>
+    obtain ⟨G, hG, h⟩ := exists_gen_of_dim_eq_cast hn
+    have H : (gen_time (F.obj G) : ℕ∞) ≤ n := by
+      rw [←hn, ←h]
+      apply Nat.mono_cast (functor_gen_time hF hG)
+    apply le_trans (dim_le_gen_time (functor_is_strong_generator hF hG)) H
+
+theorem dim_le_of_dense (hF : F.Dense) : dimension D ≤ dimension C := dim_le_of_dense' hF rfl
+
+end Functor
