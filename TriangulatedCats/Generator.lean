@@ -101,8 +101,6 @@ def is_strong_generator (G : C) := ∃ n : ℕ, (⟪{G}⟫' (n + 1)) = ⊤
 noncomputable
 def gen_time (G : C) := sInf {n | (⟪{G}⟫' (n + 1)) = ⊤}
 
-#check ENat.sInf_eq_zero
-
 noncomputable
 def dimension (C : Type*) [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
     [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C] :=
@@ -439,11 +437,6 @@ def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
 
 end props
 
-/- 3-27 TODO
-  · Dense Functors, dimension decreases under a dense functor
-
--/
-
 namespace Functor
 
 variable {C D : Type*} [Category C] [Category D] [Preadditive C] [Preadditive D] [HasZeroObject C]
@@ -451,15 +444,17 @@ variable {C D : Type*} [Category C] [Category D] [Preadditive C] [Preadditive D]
   [∀ n : ℤ, Functor.Additive (shiftFunctor D n)] [Pretriangulated C] [Pretriangulated D]
 variable {F : C ⥤ D} [F.CommShift ℤ] [F.IsTriangulated]
 variable (I J : Set C)
+variable (K : Set D)
 variable {G : C}
 
 /- A functor `F : C ⥤ D` is dense if any object `d : D` is a summand of an object in the
 image of `F` -/
 def Dense := smd (essImage F) = ⊤
 
+open IsClosedUnderIsomorphisms IsClosedUnderSmd
+
 theorem eq_top_of_contains_of_dense (hF : F.Dense) {I : Set D} [IsClosedUnderIsomorphisms I]
   [IsClosedUnderSmd I] (hI : F.obj '' ⊤ ⊆ I) : I = ⊤ := by
-    open IsClosedUnderIsomorphisms IsClosedUnderSmd in
     apply le_antisymm le_top
     rw [←hF]
     intro d hd
@@ -482,20 +477,21 @@ theorem functor_addc : F.obj '' (addc I) ⊆ addc (F.obj '' I) := by
     have := preservesBinaryBiproducts_of_preservesBinaryProducts F
     apply (F.mapBiprod _ _).symm
 
--- theorem functor_smd : F.obj '' (smd I) ⊆ smd (F.obj '' I) := by
---   rintro _ ⟨c, hc, rfl⟩
---   induction hc with
---   | of_mem' c hc => exact smd.of_mem ⟨c, hc, rfl⟩
---   | of_smd_left' a b h ih =>
---     sorry
---   | of_smd_right' => sorry
+theorem functor_smd [IsClosedUnderIsomorphisms K] (h : F.obj '' I ⊆ K) :
+    F.obj '' (smd I) ⊆ smd K := by
+  rintro _ ⟨c, hc, rfl⟩
+  have := preservesBinaryBiproducts_of_preservesBinaryProducts F
+  induction hc with
+  | of_mem' _ hc => exact smd.of_mem (h ⟨_, hc, rfl⟩)
+  | of_smd_left' _ _ _ ih => exact smd.of_smd_left (of_iso (P := smd K) (F.mapBiprod _ _) ih)
+  | of_smd_right' _ _ _ ih => exact smd.of_smd_right (of_iso (P := smd K) (F.mapBiprod _ _) ih)
 
 theorem functor_star : F.obj '' (I ⋆ J) ⊆ (F.obj '' I) ⋆ (F.obj '' J) := by
   rintro _ ⟨b, ⟨a, ha, c, hc, f, g, h, H⟩, rfl⟩
   refine ⟨_, ⟨a, ha, rfl⟩, _, ⟨c, hc, rfl⟩, _, _, _, F.map_distinguished _ H⟩
 
-theorem functor_dia : F.obj '' (I ⋄ J) ⊆ (F.obj '' I) ⋄ (F.obj '' J) := by
-  sorry
+theorem functor_dia : F.obj '' (I ⋄ J) ⊆ (F.obj '' I) ⋄ (F.obj '' J) :=
+  functor_smd _ _ (le_trans (functor_star _ _) (star_mono (functor_addc I) (functor_addc J)))
 
 theorem functor_level {n : ℕ} : F.obj '' (⟪I⟫' n) ⊆ ⟪F.obj '' I⟫' n := by
   induction n with
@@ -504,7 +500,6 @@ theorem functor_level {n : ℕ} : F.obj '' (⟪I⟫' n) ⊆ ⟪F.obj '' I⟫' n 
     rw [level_zero] at hc ⊢
     apply map_isZero F hc
   | succ n ih => exact le_trans (functor_dia _ _) (dia_mono ih le_rfl)
-
 
 theorem functor_thick_cl' : F.obj '' ⟪I⟫ ⊆ ⟪F.obj '' I⟫ := by
   rw [thick_cl', Set.image_iUnion]
