@@ -71,6 +71,9 @@ theorem biprod_mem {X Y : C} (hX : X ∈ P) (hY : Y ∈ P) : (X ⊞ Y) ∈ P :=
 theorem smd_mem_left {X Y : C} (hXY : (X ⊞ Y) ∈ P) : X ∈ P := P.smd_mem' hXY
 theorem smd_mem_right {X Y : C} (hXY : (X ⊞ Y) ∈ P) : Y ∈ P := P.smd_mem' (P.iso_mem hXY (biprod.braiding X Y))
 
+/-
+  TODO: Prove that the preimage of a thick subcategory is a thick subategory
+-/
 def kernel : ThickSubcategory C where
   carrier := F.kernel
   zero_mem' := Functor.map_isZero _ (isZero_zero C)
