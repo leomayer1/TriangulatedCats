@@ -443,10 +443,10 @@ end props
 
 namespace Functor
 
-variable {C D : Type*} [Category C] [Category D] [Preadditive C] [Preadditive D] [HasZeroObject C]
-  [HasZeroObject D] [HasShift C ℤ] [HasShift D ℤ] [∀ n : ℤ, Functor.Additive (shiftFunctor C n)]
-  [∀ n : ℤ, Functor.Additive (shiftFunctor D n)] [Pretriangulated C] [Pretriangulated D]
-variable {F : C ⥤ D} [F.CommShift ℤ] [F.IsTriangulated]
+variable {C D : Type*} [Category C] [Category D] [Preadditive D]
+  [HasZeroObject D] [HasShift D ℤ]
+  [∀ n : ℤ, Functor.Additive (shiftFunctor D n)] [Pretriangulated D]
+variable {F : C ⥤ D}
 variable (I J : Set C)
 variable (K : Set D)
 variable {G : C}
@@ -468,6 +468,10 @@ theorem eq_top_of_contains_of_dense (hF : F.Dense) {I : Set D} [IsClosedUnderIso
       apply of_iso (P := I) φ (hI ⟨c, trivial, rfl⟩)
     | of_smd_left' _ _ _ ih => exact of_smd_left (P := I) ih
     | of_smd_right' _ _ _ ih => exact of_smd_right (P := I) ih
+
+variable [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
+  [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
+  [F.CommShift ℤ] [F.IsTriangulated]
 
 theorem functor_addc : F.obj '' (addc I) ⊆ addc (F.obj '' I) := by
   rintro _ ⟨c, hc, rfl⟩
