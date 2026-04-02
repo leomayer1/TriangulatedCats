@@ -401,6 +401,10 @@ theorem level_zero : (⟪I⟫' 0) = IsZero := by
     exact isZero_zero _
   . exact fun a ha => of_iso (P := ⟪I⟫' 0) ha.isoZero.symm (smd.of_mem (addc.of_mem rfl))
 
+@[simp]
+theorem level_one : (⟪I⟫' 1) = smd (addc I) := by
+  rw [level, level_zero, dia, addc_isZero, isZero_star]
+
 variable [IsTriangulated C]
 
 theorem dia_assoc : I ⋄ J ⋄ K = I ⋄ (J ⋄ K) := by
