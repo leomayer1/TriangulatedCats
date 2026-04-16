@@ -1,5 +1,6 @@
 import Mathlib.CategoryTheory.Triangulated.Functor
 import Mathlib.CategoryTheory.ObjectProperty.ContainsZero
+import Mathlib.CategoryTheory.ObjectProperty.Shift
 import Mathlib.CategoryTheory.Preadditive.AdditiveFunctor
 /-
   Define basic definitions for Matsui spectra
@@ -70,6 +71,15 @@ theorem biprod_mem {X Y : C} (hX : X ∈ P) (hY : Y ∈ P) : (X ⊞ Y) ∈ P :=
   P.obj₂_mem (binaryBiproductTriangle_distinguished X Y) hX hY
 theorem smd_mem_left {X Y : C} (hXY : (X ⊞ Y) ∈ P) : X ∈ P := P.smd_mem' hXY
 theorem smd_mem_right {X Y : C} (hXY : (X ⊞ Y) ∈ P) : Y ∈ P := P.smd_mem' (P.iso_mem hXY (biprod.braiding X Y))
+
+section instances
+
+open ObjectProperty
+
+instance : ContainsZero (P : Set C) := ⟨0, isZero_zero _, P.zero_mem⟩
+instance : IsStableUnderShift (P : Set C) ℤ := ⟨fun _ => ⟨fun _ hP => P.shift_mem hP⟩⟩
+
+end instances
 
 /-
   TODO: Prove that the preimage of a thick subcategory is a thick subategory
