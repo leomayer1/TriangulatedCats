@@ -44,42 +44,6 @@ def star' : Set C :=
 
 infixl:60 " ⋆ " => star'
 
-theorem star_assoc [IsTriangulated C] : I ⋆ J ⋆ K = I ⋆ (J ⋆ K) := by
-  ext c
-  constructor
-  . rintro ⟨b₁, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, b₂, hb₂, f, g, h, H⟩
-    obtain ⟨c₂, f'', g'', H''⟩ := distinguished_cocone_triangle (f' ≫ f)
-    obtain ⟨O⟩ := IsTriangulated.octahedron_axiom (rfl) H' H H''
-    refine ⟨a₁, ha₁, c₂, ⟨a₂, ha₂, b₂, hb₂, _, _, _, O.mem⟩, _, _, _, H''⟩
-  /- This proof of the reserve direction gave me nightmares -/
-  . rintro ⟨b₁, hb₁, b₂, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, f, g, h, H⟩
-    obtain ⟨c₂, h'', f'', H''⟩ := distinguished_cocone_triangle (g ≫ g')
-    obtain ⟨O⟩ := IsTriangulated.octahedron_axiom (rfl) (rot_of_distTriang _ H) (rot_of_distTriang _ H') (H'')
-    refine ⟨c₂⟦-1⟧, ⟨b₁, hb₁, a₁, ha₁, ?_, ?_, f' ≫ h, ?_⟩, a₂, ha₂, _, _, _, inv_rot_of_distTriang _ H''⟩
-    . exact -(shiftShiftNeg _ _).inv ≫ (O.m₁⟦-1⟧')
-    . exact -(O.m₃⟦-1⟧') ≫ (shiftShiftNeg _ _).hom
-    . apply isomorphic_distinguished _ (Triangle.shift_distinguished _ O.mem (-1))
-      apply Triangle.isoMk _ _ (shiftShiftNeg b₁ (1 : ℤ)).symm (Iso.refl (c₂⟦-1⟧)) (shiftShiftNeg a₁ (1 : ℤ)).symm
-        (comm₃ := by
-          simp
-          show f' ≫ h ≫ ((shiftFunctorCompIsoId C 1 (-1) _).inv.app b₁)⟦(1 : ℤ)⟧' =
-            (shiftFunctorCompIsoId C 1 (-1) _).inv.app a₁ ≫ f'⟦(1:ℤ)⟧'⟦-1⟧' ≫ h⟦(1 : ℤ)⟧'⟦-1⟧' ≫
-            (shiftFunctorComm C 1 (-1)).hom.app (b₁⟦1⟧)
-          have HH (hh) (hh'): ((shiftFunctorCompIsoId C 1 (-1) hh).inv.app b₁)⟦(1 : ℤ)⟧' =
-            (shiftFunctorCompIsoId C 1 (-1) hh').inv.app (b₁⟦(1 : ℤ)⟧) ≫ (shiftFunctorComm C 1 (-1)).hom.app (b₁⟦1⟧) := by
-              rw [shift_shiftFunctorCompIsoId_inv_app]
-              simp [shiftFunctorCompIsoId, shiftFunctorComm]
-              rw [←assoc]
-              convert (id_comp _).symm
-              rw [←NatTrans.comp_app, ← shiftFunctorAdd'_eq_shiftFunctorAdd]
-              simp
-          rw [HH (add_neg_cancel _) (add_neg_cancel _),←assoc,←assoc,←assoc,←assoc]
-          congr 1
-          nth_rewrite 2 [assoc]
-          rw [←Functor.map_comp, ←Functor.map_comp]
-          apply NatTrans.naturality (shiftFunctorCompIsoId C 1 (-1) _).inv
-        )
-
 abbrev dia : Set C := smd (star' (addc I) (addc J))
 
 infixl:60 " ⋄ " => dia
@@ -114,6 +78,26 @@ variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C 
   [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
 variable {I J K : Set C}
 variable (n m : ℕ)
+
+theorem star_assoc [IsTriangulated C] : I ⋆ J ⋆ K = I ⋆ (J ⋆ K) := by
+  ext c
+  constructor
+  . rintro ⟨b₁, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, b₂, hb₂, f, g, h, H⟩
+    obtain ⟨c₂, f'', g'', H''⟩ := distinguished_cocone_triangle (f' ≫ f)
+    obtain ⟨O⟩ := IsTriangulated.octahedron_axiom (rfl) H' H H''
+    refine ⟨a₁, ha₁, c₂, ⟨a₂, ha₂, b₂, hb₂, _, _, _, O.mem⟩, _, _, _, H''⟩
+  /- This proof of the reserve direction gave me nightmares -/
+  . rintro ⟨b₁, hb₁, b₂, ⟨a₁, ha₁, a₂, ha₂, f', g', h', H'⟩, f, g, h, H⟩
+    obtain ⟨c₂, h'', f'', H''⟩ := distinguished_cocone_triangle (g ≫ g')
+    obtain ⟨O⟩ := IsTriangulated.octahedron_axiom (rfl) (rot_of_distTriang _ H) (rot_of_distTriang _ H') (H'')
+    refine ⟨c₂⟦-1⟧, ⟨b₁, hb₁, a₁, ha₁, ?_, ?_, f' ≫ h, ?_⟩, a₂, ha₂, _, _, _, inv_rot_of_distTriang _ H''⟩
+    . exact -(shiftShiftNeg _ _).inv ≫ (O.m₁⟦-1⟧')
+    . exact -(O.m₃⟦-1⟧') ≫ (shiftShiftNeg _ _).hom
+    . apply isomorphic_distinguished _ (Triangle.shift_distinguished _ O.mem (-1))
+      apply Triangle.isoMk _ _ (shiftShiftNeg b₁ (1 : ℤ)).symm (Iso.refl (c₂⟦-1⟧)) (shiftShiftNeg a₁ (1 : ℤ)).symm
+        (comm₁ := sorry)
+        (comm₂ := sorry)
+        (comm₃ := sorry)
 
 theorem addc.of_mem {a : C} (ha : a ∈ I) : a ∈ addc I := addc.of_mem' a ha
 theorem addc.of_shift {i : ℤ} {a : C} (ha : a ∈ addc I) : a⟦i⟧ ∈ addc I := addc.of_shift' i a ha
@@ -378,14 +362,14 @@ theorem smd_isZero : smd IsZero (C := C) = IsZero := by
   | of_smd_left' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).left
   | of_smd_right' _ _ _ ih => exact ((biprod_isZero_iff _ _).mp ih).right
 
-theorem star_isZero [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : I ⋆ IsZero = I := by
+theorem star_isZero [IsClosedUnderIsomorphisms I] : I ⋆ IsZero = I := by
   apply le_antisymm ?_ ?_
   . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
     have : IsIso f := (Triangle.isZero₃_iff_isIso₁ _ H).mp hb
     apply of_iso (P := I) (asIso f) ha
   . exact fun x hx => ⟨x, hx, 0, isZero_zero _, _, _, _, contractible_distinguished _⟩
 
-theorem isZero_star [IsClosedUnderIsomorphisms I] [IsStableUnderShift I ℤ] : IsZero ⋆ I = I := by
+theorem isZero_star [IsClosedUnderIsomorphisms I] : IsZero ⋆ I = I := by
   apply le_antisymm ?_ ?_
   . rintro c ⟨a, ha, b, hb, f, g, h, H⟩
     have : IsIso g := (Triangle.isZero₁_iff_isIso₂ _ H).mp ha
@@ -436,7 +420,7 @@ def ThickSubcategory.thick_cl (I : Set C) : ThickSubcategory C where
     apply star_subset_dia
     rw [star_eq₃]
     exact ⟨_, h₁, _, h₂, _, _, _, hT⟩
-  smd_mem' {a b} := fun ⟨_, ⟨n, rfl⟩, ha⟩ => ⟨_, ⟨n, rfl⟩, level_of_smd_left n ha⟩
+  smd_mem' {a b} hab := of_smd_left (P := ⟪I⟫) hab
 
 
 end props
