@@ -50,19 +50,20 @@ variable [Pretriangulated C]
 
 theorem isGhost_star (hf : isGhost I f) (hg : isGhost J g) : isGhost (I ⋆ J) (f ≫ g) := by
   rintro c ⟨_, ha, _, hb, j, _, _, H⟩ α
-  obtain ⟨β, hβ⟩ := Triangle.yoneda_exact₂ _ H (α ≫ f) (by rw [←assoc]; exact hf _ ha _)
-  rw [←assoc, hβ, assoc, hg _ hb _, comp_zero]
+  obtain ⟨β, (hβ : α ≫ f = _ ≫ _)⟩ := Triangle.yoneda_exact₂ _ H (α ≫ f) (by rw [←assoc]; exact hf _ ha _)
+  rw [←assoc, hβ, assoc, hg, comp_zero]
+  exact hb
 
 theorem isGhost_addc [IsStableUnderShift I ℤ] (hf : isGhost I f) : isGhost (addc I) f := by
   open IsStableUnderShift in
   suffices H : ∀ d ∈ (addc I), ∀ (i : ℤ),  ∀ h : d⟦i⟧ ⟶ a, h ≫ f = 0 from fun d hd h => by
-    rw [←IsIso.comp_left_eq_zero ((shiftFunctorZero C ℤ).hom.app d), ←assoc, H d hd]
+    erw [←(IsIso.comp_left_eq_zero ((shiftFunctorZero C ℤ).hom.app d)), ←assoc, H d hd]
   intro d hd i h
   induction hd generalizing i with
   | zero => exact zero_of_source_iso_zero _ (IsZero.isoZero (Functor.map_isZero _ (isZero_zero _)))
   | of_mem' d hd => exact hf _ (le_shift (P := I) _ d hd) h
   | of_shift' j d hd ih =>
-    rw [←IsIso.comp_left_eq_zero ((shiftFunctorAdd C j i).hom.app d), ←assoc, ih]
+    erw [←IsIso.comp_left_eq_zero ((shiftFunctorAdd C j i).hom.app d), ←assoc, ih]
   | of_iso' _ _ _ φ ih => rw [←IsIso.comp_left_eq_zero ((φ.hom)⟦i⟧') (h ≫ f), ←assoc, ih]
   | biprod' d d' _ _ ihd ihd' =>
     have := preservesBinaryBiproducts_of_preservesBinaryProducts (shiftFunctor C i)
@@ -123,8 +124,8 @@ omit [HasShift C ℤ] [∀ (n : ℤ), (shiftFunctor C n).Additive]
     [Pretriangulated C] [HasZeroObject C] in
 theorem ghostSeqHomGhost {A : (x:  C) → (Ghost I x)} {n : ℕ} {φ : n ⟶ n + 1} :
     isGhost I ((ghostSeq I a A).map φ) := by
-  convert (A (ghostSeqObj I a A n)).isGhost
-  convert Functor.ofSequence_map_homOfLE_succ (ghostSeqHom I a A) n
+  erw [Functor.ofSequence_map_homOfLE_succ (ghostSeqHom I a A) n]
+  exact (A (ghostSeqObj I a A n)).isGhost
 
 theorem ghostSeqGhostLevel [IsStableUnderShift I ℤ] {a : C} {A : (x : C) → (Ghost I x)}
     {n : ℕ} {N : 0 ⟶ n}: isGhost (⟪I⟫' n) ((ghostSeq I a A).map N) := by
@@ -163,7 +164,7 @@ theorem ghostSeqConeLevel {a : C} {A : (x : C) → PseudoAdjoint I x} {n : ℕ} 
     have hc₂ : c₂ ∈ ⟪I⟫' 1 := by
       let ψ : (A (F.obj n)).x⟦(1 : ℤ)⟧ ≅ c₂ := by
         let hT := dist_PA_Triangle (A (F.obj n))
-        let Φ := isoTriangleOfIso₁₂ _ _ (rot_of_distTriang _ hT) H₂ (Iso.refl _) (Iso.refl _) (by aesop)
+        let Φ := isoTriangleOfIso₁₂ _ _ (rot_of_distTriang _ hT) H₂ (Iso.refl _) (Iso.refl _) (by sorry)
         exact Triangle.π₃.mapIso Φ
       apply IsClosedUnderIsomorphisms.of_iso (P := ⟪I⟫' 1) ψ
       apply le_shift (P := ⟪I⟫' 1) (1 : ℤ)
