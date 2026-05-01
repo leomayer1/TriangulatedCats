@@ -12,7 +12,6 @@ variable {T T' : Triangle C}
 local instance (i : ℤ) : PreservesBinaryBiproducts (shiftFunctor C i) :=
   preservesBinaryBiproducts_of_preservesBinaryProducts (shiftFunctor C i)
 
-
 @[simps!]
 noncomputable
 def BiprodTriangle (T T' : Triangle C) : Triangle C := Triangle.mk (biprod.map T.mor₁ T'.mor₁)
@@ -26,21 +25,52 @@ def BiprodTriangle (T T' : Triangle C) : Triangle C := Triangle.mk (biprod.map T
     2) a proof that P is closed under sums, products, etc
     3) a proof that the five lemma holds for triangles satisfying P
   -/
-def dist_biprodTriangle (hT : T ∈ distTriang C) (hT' : T' ∈ distTriang C) :
-    BiprodTriangle T T' ∈ distTriang C := by
+theorem dist_biprodTriangle (hT : T ∈ distTriang C) (hT' : T' ∈ distTriang C) :
+    BiprodTriangle T T' ∈ distTriang C := sorry
+
+/-    by
   have H := productTriangle_distinguished (fun j => WalkingPair.casesOn j T T')
     (fun j => WalkingPair.casesOn j hT hT')
   apply isomorphic_distinguished _ H
   apply Triangle.isoMk _ _ ?_ ?_ ?_ ?_ ?_ ?_
+  . apply Iso.mk ?_ ?_ ?_ ?_
+    . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
+      exact biprod.fst
+      exact biprod.snd
+    . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
+    . apply biprod.hom_ext
+      . simp
+        apply biprod.hom_ext'
+        . simp
+        . simp
+      . simp
+    . sorry
+  . apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
+    symm
+    apply diagramIsoPair
+  . apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
+    symm
+    apply diagramIsoPair
+  .
+  . sorry
+  . sorry
+
+
+  /- apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
+    symm
+    apply diagramIsoPair
+  -/
+
+  /-apply Triangle.isoMk _ _ ?_ ?_ ?_ ?_ ?_ ?_
   . apply Iso.mk ?_ ?_ (?_) (?_)
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
       exact biprod.snd
     . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . aesop
-    . simp only [productTriangle_obj₁, BiprodTriangle_obj₁]
+    . simp
+    . simp [productTriangle_obj₁, BiprodTriangle_obj₁]
       ext j
-      cases j <;> simp
+      cases j <;> aesop
   . apply Iso.mk ?_ ?_ (?_) (?_)
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
@@ -63,4 +93,5 @@ def dist_biprodTriangle (hT : T ∈ distTriang C) (hT' : T' ∈ distTriang C) :
   simp
   ext j <;>
   cases j <;>
-  simp [←Functor.map_comp]
+  simp [←Functor.map_comp]-/
+-/
