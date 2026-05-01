@@ -32,7 +32,7 @@ variable {C : Type*} [Category C] [HasZeroObject C] [Preadditive C]
 variable (A B : ThickSubcategory C) (S : SOD C) (X : C)
 
 def IsLeftAdmissible := IsRightAdjoint (ι A.carrier)
-def IsRightAdmissible := IsLeftAdjoint (ι A.carrier)
+def IsRightAdmissible := IsLeftAdjoint (ι B.carrier)
 
 
 namespace SOD
@@ -88,8 +88,8 @@ lemma B_hom {B : C} (hB : B ∈ S.B) (f : B ⟶ X) :
 
 variable (S : SOD C) (f : X ⟶ Y)
 
-def A_map : S.A_obj X ⟶ S.A_obj Y := (hom_A A_obj_mem (f ≫ S.ε Y)).choose
-def B_map : S.B_obj X ⟶ S.B_obj Y := (B_hom B_obj_mem (S.η X ≫ f)).choose
+def A_map := (hom_A A_obj_mem (f ≫ S.ε Y)).choose
+def B_map := (B_hom B_obj_mem (S.η X ≫ f)).choose
 
 variable {S : SOD C} {f : X ⟶ Y}
 
@@ -107,19 +107,17 @@ theorem eq_A_map {g : S.A_obj X ⟶ S.A_obj Y} (h : S.ε X ≫ g = f ≫ S.ε Y)
 theorem eq_B_map {g : S.B_obj X ⟶ S.B_obj Y} (h : g ≫ S.η Y = S.η X ≫ f) : S.B_map f = g :=
   (B_hom B_obj_mem _).unique B_map_prop h
 
-theorem ε_isIso (hX : X ∈ S.A) : IsIso (S.ε X) := by
-  constructor
-  obtain ⟨inv, h₁, _⟩ := hom_A hX (𝟙 X)
+theorem ε_isIso (hX : X ∈ S.A) : IsIso (S.ε X) := ⟨by
+  obtain (⟨inv, h₁, _⟩) := hom_A hX (𝟙 X)
   refine ⟨inv, h₁, ?_⟩
   obtain ⟨w, _, h₂⟩ := hom_A A_obj_mem (S.ε X)
   have hw₁ : inv ≫ S.ε X = w := by
     apply h₂
     rw [←Category.assoc, h₁, Category.id_comp]
   have hw₂ : 𝟙 (S.A_obj X) = w := h₂ _ (Category.comp_id _)
-  rw [hw₁, hw₂]
+  rw [hw₁, hw₂]⟩
 
-theorem η_isIso (hX : X ∈ S.B) : IsIso (S.η X) := by
-  constructor
+theorem η_isIso (hX : X ∈ S.B) : IsIso (S.η X) := ⟨by
   obtain ⟨inv, h₁, _⟩ := B_hom hX (𝟙 X)
   refine ⟨inv, ?_, h₁⟩
   obtain ⟨w, _, h₂⟩ := B_hom B_obj_mem (S.η X)
@@ -127,7 +125,7 @@ theorem η_isIso (hX : X ∈ S.B) : IsIso (S.η X) := by
     apply h₂
     rw [Category.assoc, h₁, Category.comp_id]
   have hw₂ : 𝟙 (S.B_obj X) = w := h₂ _ (Category.id_comp _)
-  rw [hw₁, hw₂]
+  rw [hw₁, hw₂]⟩
 
 @[simps]
 def A_func : C ⥤ FullSubcategory S.A.carrier where
@@ -167,7 +165,7 @@ def A_counit : (ι S.A.carrier) ⋙ A_func ⟶ 𝟭 _ where
 def B_counit : B_func ⋙ (ι S.B.carrier) ⟶ 𝟭 C where
   app X := S.η X
 
-@[simp]
+@[simps]
 def B_unit : 𝟭 _ ⟶ (ι S.B.carrier) ⋙ B_func where
   app X := ⟨(inv (S.η X.obj) (I := η_isIso X.property))⟩
   naturality X Y f := by
@@ -175,26 +173,26 @@ def B_unit : 𝟭 _ ⟶ (ι S.B.carrier) ⋙ B_func where
     simp [←Category.assoc]
 
 
-theorem IsLeftAdmissible : IsLeftAdmissible S.A :=
+theorem isLeftAdmissible : IsLeftAdmissible S.A :=
   ⟨S.A_func, ⟨{
     unit := S.A_unit
     counit := S.A_counit
     left_triangle_components X := by
-      ext
-      simp
-      apply eq_A_map
-      simp
+      have h : S.A_map (S.ε X) = S.ε (S.A_obj X) := by
+        apply eq_A_map
+        simp
+      ext; simp [h]
   }⟩⟩
 
-theorem IsRightAdmissible : IsRightAdmissible S.B :=
+theorem isRightAdmissible : IsRightAdmissible S.B :=
   ⟨S.B_func, ⟨{
     unit := S.B_unit
     counit := S.B_counit
     right_triangle_components X := by
-      ext
-      simp
-      apply eq_B_map
-      simp
+      have h : S.B_map (S.η X) = S.η (S.B_obj X) := by
+        apply eq_B_map
+        simp
+      ext; simp [h]
   }⟩⟩
 
 end SOD
@@ -233,10 +231,30 @@ def LeftComplement (A : Set C) [IsStableUnderShift A ℤ] : ThickSubcategory C w
     rw [hg, comp_zero]
   smd_mem' {_ _ h} _ hb _ := zero_of_epi_comp biprod.fst (h _ hb _)
 
+namespace Admissible
+
 notation "ᗮ" A => LeftComplement A
 notation A "ᗮ" => RightComplement A
 
+variable {A B : ThickSubcategory C}
 
+def unitTriang {π : C ⥤ FullSubcategory A.carrier} (adj : π ⊣ ι A.carrier) (X : C) : Triangle C :=
+  let h := distinguished_cocone_triangle₁ (adj.unit.app X)
+  Triangle.mk
+    (Exists.choose $ Exists.choose_spec h)
+    (adj.unit.app X)
+    (Exists.choose $ Exists.choose_spec $ Exists.choose_spec h)
+
+theorem unitTriang_dist {π : C ⥤ FullSubcategory A.carrier} {adj : π ⊣ ι A.carrier} {X : C} :
+    (unitTriang adj X) ∈ distTriang C :=
+  let h := distinguished_cocone_triangle₁ (adj.unit.app X)
+  Exists.choose_spec $ Exists.choose_spec $ Exists.choose_spec h
+
+open Function
+
+theorem yoneda_iso_shift {X Y Z : C} {i : ℤ} (f : X ⟶ Y)
+    (hf : Bijective ((f ≫ ·) : (Y ⟶ Z) → (X ⟶ Z))) :
+  Bijective ((f⟦i⟧' ≫ .) : (Y⟦i⟧ ⟶ Z⟦i⟧) → (X⟦i⟧ ⟶ Z⟦i⟧)) := sorry
 /-
   Might need to give thick subcategories a triangulated category instance?
   And prove that adjoints preserve shifts and are triangulated
@@ -261,5 +279,7 @@ def SOD_right (hB : IsRightAdmissible B) : SOD C where
   B := B ᗮ
   hom b hb a ha f := sorry
   prop := sorry
+
+end Admissible
 
 end admissible
