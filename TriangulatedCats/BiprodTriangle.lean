@@ -17,6 +17,7 @@ noncomputable
 def BiprodTriangle (T T' : Triangle C) : Triangle C := Triangle.mk (biprod.map T.mor₁ T'.mor₁)
     (biprod.map T.mor₂ T'.mor₂) (biprod.map T.mor₃ T'.mor₃ ≫ (Functor.mapBiprod _ _ _).inv)
 
+
 /- A very strange proof: mathlib already has that the product of distinguished triangles
   is distinguished, so I bootstrap that by showing the biprodTriangle is isomorphic
   to a product indexed by WalkingPair. There are some definitional quagmires, but
@@ -26,72 +27,39 @@ def BiprodTriangle (T T' : Triangle C) : Triangle C := Triangle.mk (biprod.map T
     3) a proof that the five lemma holds for triangles satisfying P
   -/
 theorem dist_biprodTriangle (hT : T ∈ distTriang C) (hT' : T' ∈ distTriang C) :
-    BiprodTriangle T T' ∈ distTriang C := sorry
-
-/-    by
+    BiprodTriangle T T' ∈ distTriang C := by
   have H := productTriangle_distinguished (fun j => WalkingPair.casesOn j T T')
     (fun j => WalkingPair.casesOn j hT hT')
   apply isomorphic_distinguished _ H
   apply Triangle.isoMk _ _ ?_ ?_ ?_ ?_ ?_ ?_
-  . apply Iso.mk ?_ ?_ ?_ ?_
-    . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
-      exact biprod.fst
-      exact biprod.snd
-    . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . apply biprod.hom_ext
-      . simp
-        apply biprod.hom_ext'
-        . simp
-        . simp
-      . simp
-    . sorry
-  . apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
-    symm
-    apply diagramIsoPair
-  . apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
-    symm
-    apply diagramIsoPair
-  .
-  . sorry
-  . sorry
-
-
-  /- apply IsLimit.conePointsIsoOfNatIso (BinaryBiproduct.isLimit _ _) (limit.isLimit _)
-    symm
-    apply diagramIsoPair
-  -/
-
-  /-apply Triangle.isoMk _ _ ?_ ?_ ?_ ?_ ?_ ?_
   . apply Iso.mk ?_ ?_ (?_) (?_)
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
       exact biprod.snd
     . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . simp
-    . simp [productTriangle_obj₁, BiprodTriangle_obj₁]
-      ext j
-      cases j <;> aesop
+    . apply biprod.hom_ext <;> simp [Pi.lift_π]
+    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
   . apply Iso.mk ?_ ?_ (?_) (?_)
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
       exact biprod.snd
     . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . aesop
-    . simp only [productTriangle_obj₂, BiprodTriangle_obj₂]
-      ext j
-      cases j <;> simp
+    . apply biprod.hom_ext <;> simp [Pi.lift_π]
+    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
   . apply Iso.mk ?_ ?_ (?_) (?_)
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
       exact biprod.snd
     . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . aesop
-    . simp only [productTriangle_obj₃, BiprodTriangle_obj₃]
-      ext j
-      cases j <;> simp
-  all_goals
-  simp
-  ext j <;>
-  cases j <;>
-  simp [←Functor.map_comp]-/
--/
+    . apply biprod.hom_ext <;> simp [Pi.lift_π]
+    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
+  · apply Pi.hom_ext
+    intro j
+    cases j <;> simp [Pi.map_π, Pi.lift_π, Pi.lift_π_assoc]
+  · apply Pi.hom_ext
+    intro j
+    cases j <;> simp [Pi.map_π, Pi.lift_π, Pi.lift_π_assoc]
+  · simp [←assoc]
+    apply Pi.hom_ext
+    intro j
+    cases j <;> apply biprod.hom_ext' <;> simp [Pi.lift_π, ←Functor.map_comp, Pi.lift_π_assoc]
