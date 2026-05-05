@@ -164,7 +164,8 @@ theorem ghostSeqConeLevel {a : C} {A : (x : C) → PseudoAdjoint I x} {n : ℕ} 
     have hc₂ : c₂ ∈ ⟪I⟫' 1 := by
       let ψ : (A (F.obj n)).x⟦(1 : ℤ)⟧ ≅ c₂ := by
         let hT := dist_PA_Triangle (A (F.obj n))
-        let Φ := isoTriangleOfIso₁₂ _ _ (rot_of_distTriang _ hT) H₂ (Iso.refl _) (Iso.refl _) (by sorry)
+        let Φ := isoTriangleOfIso₁₂ _ _ (rot_of_distTriang _ hT) H₂ (Iso.refl _) (Iso.refl _)
+          (by erw [ghostSeqHom_eq, comp_id, id_comp]; rfl)
         exact Triangle.π₃.mapIso Φ
       apply IsClosedUnderIsomorphisms.of_iso (P := ⟪I⟫' 1) ψ
       apply le_shift (P := ⟪I⟫' 1) (1 : ℤ)
