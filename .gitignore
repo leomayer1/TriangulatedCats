@@ -1,0 +1,7 @@
+/.lake/
+.cache/*
+.devenv/*
+.stfolder/*
+/lakefile.olean
+/lake-packages/*
+/build/
