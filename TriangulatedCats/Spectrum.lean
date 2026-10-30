@@ -21,23 +21,26 @@ section topology
 variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
   [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
 
-def Z (I : Set C) : Set (ThickSubcategory C) := {P : (ThickSubcategory C) | I ∩ P = ⊥}
-def D (I : Set C) : Set (ThickSubcategory C) := {P : (ThickSubcategory C) | ∃ X : C, X ∈ (I ∩ P)}
+def Z (I : Set C) : Set (ThickSubcategory C) := {P : (ThickSubcategory C) | ∀ x : C, x ∉ I ⊓ P}
+def D (I : Set C) : Set (ThickSubcategory C) := {P : (ThickSubcategory C) | ∃ x : C, x ∈ (I ∩ P)}
 
-@[simp]
-theorem mem_Z_iff {I : Set C} {P : ThickSubcategory C} : P ∈ Z I ↔ (I ∩ P) = ⊥ := by simp [Z]
-theorem not_mem_Z_iff {I : Set C} {P : ThickSubcategory C} : P ∉ Z I ↔ ∃ X, X ∈ I ∩ P := by
-  contrapose
-  convert mem_Z_iff
-  simp [Set.eq_empty_iff_forall_notMem]
+-- @[simp]
+-- theorem mem_Z_iff {I : Set C} {P : ThickSubcategory C} : P ∈ Z I ↔ (I ∩ P) = ⊥ := by
+--   constructor <;> intro <;> simp [Z] at *
+--   · ext <;> tauto
+--   · tauto
+-- theorem not_mem_Z_iff {I : Set C} {P : ThickSubcategory C} : P ∉ Z I ↔ ∃ X, X ∈ I ∩ P := by
+--   contrapose
+--   convert mem_Z_iff
+--   simp [Set.eq_empty_iff_forall_notMem]
 
-theorem ThickSubcategory.ne_empty (P : ThickSubcategory C) : P.carrier ≠ ∅ :=
-  (Set.nonempty_iff_ne_empty).mp ⟨0, P.zero_mem⟩
+-- theorem ThickSubcategory.ne_empty (P : ThickSubcategory C) : P.carrier ≠ ∅ :=
+--   (Set.nonempty_iff_ne_empty).mp ⟨0, P.zero_mem⟩
 
 
 instance : TopologicalSpace (ThickSubcategory C) where
-  IsOpen := {D I | I : Set C}
-  isOpen_univ := ⟨⊤, Set.eq_univ_of_forall (fun P => ⟨0, Set.mem_univ _, P.zero_mem⟩)⟩
+  IsOpen S := ∃ I : Set C, D I = S
+  isOpen_univ := ⟨⊤, Set.eq_univ_of_forall fun P => ⟨0, trivial, P.zero_mem⟩⟩
   isOpen_inter := by
     rintro _ _ ⟨I, rfl⟩ ⟨J, rfl⟩
     use {C | ∃ A ∈ I, ∃ B ∈ J, C = (A ⊞ B)}
@@ -91,8 +94,8 @@ supp_biprod' a b := by
 supp_shift' a := by
   ext P
   show (shiftFunctor C 1).obj a ∉ P ↔ a ∉ P
-  contrapose!
-  refine ⟨P.mem_of_shift_mem (i := 1), P.shift_mem (i := 1)⟩
+  contrapose
+  exact ⟨P.mem_of_shift_mem, P.shift_mem⟩
 supp_obj₃' {T} hT P hP₃ := by
   by_cases hP₁ : T.obj₁ ∈ P
   . exact Or.inr (fun hP₂ => hP₃ (P.obj₃_mem hT hP₁ hP₂))
@@ -107,10 +110,10 @@ variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C 
 variable (X Y : SupportDatum C)
 
 
-def supp' (I : Set C) : Set X.X := ⋃ a ∈ I, X.supp a
+def supp' (I : ObjectProperty C) : Set X.X := {x | ∃ a, I a ∧ x ∈ X.supp a}
 
-theorem mem_supp' {I : Set C} (x : X.X) : x ∈ X.supp' I ↔ ∃ a ∈ I, x ∈ X.supp a := by simp [supp']
-theorem supp_subset_supp' {I : Set C} {a : C} (ha : a ∈ I) : X.supp a ≤ X.supp' I := by
+theorem mem_supp' {I : ObjectProperty C} (x : X.X) : x ∈ X.supp' I ↔ ∃ a, I a ∧ x ∈ X.supp a := by simp [supp']
+theorem supp_subset_supp' {I : ObjectProperty C} {a : C} (ha : I a) : X.supp a ≤ X.supp' I := by
   intro x hx
   rw [mem_supp']
   exact ⟨a, ha, hx⟩
@@ -119,7 +122,7 @@ theorem supp'_mono : Monotone (supp' X) := by
   intro I J hab x hx
   rw [mem_supp'] at hx ⊢
   obtain ⟨a, ha, hx⟩ := hx
-  exact ⟨a, hab ha, hx⟩
+  exact ⟨a, hab _ ha, hx⟩
 
 @[simp]
 theorem supp_zero : X.supp 0 = ⊥ := X.supp_zero'
@@ -131,16 +134,16 @@ theorem supp_obj₂ {T : Triangle C} (hT : T ∈ distTriang C) : X.supp (T.obj�
   rw [←X.supp_shift' T.obj₁, sup_comm]
   exact X.supp_obj₁ (T := T.rotate) (rot_of_distTriang T hT)
 theorem supp_obj₃ {T : Triangle C} (hT : T ∈ distTriang C) : X.supp (T.obj₃) ≤ X.supp (T.obj₁) ⊔ X.supp (T.obj₂) := X.supp_obj₃' hT
+
+set_option backward.isDefEq.respectTransparency false in
 theorem supp_iso {a b : C} (φ : a ≅ b) : X.supp a = X.supp b := by
   let T : Triangle C := Triangle.mk (Z := 0) φ.hom 0 0
   have hT : T ∈ distTriang C := by
     apply isomorphic_distinguished (contractibleTriangle a) (contractible_distinguished a)
     apply Triangle.isoMk _ _ (Iso.refl a) (φ.symm) (Iso.refl 0)
   apply le_antisymm
-  . convert X.supp_obj₁ hT
-    simp [T]
-  . convert X.supp_obj₂ hT
-    simp [T]
+  . convert X.supp_obj₁ hT; rfl; simp [T]
+  . convert X.supp_obj₂ hT; rfl; simp [T]
 
 @[simp]
 theorem supp_shift {i : ℤ} (a : C) : X.supp (a⟦i⟧) = X.supp (a) := by
@@ -162,7 +165,7 @@ supp : ∀ a : C, X.supp a = f⁻¹' Y.supp a
 
 instance : FunLike (SupportDatumHom X Y) X.X Y.X where
   coe f := f.f
-  coe_injective' a b (h : a.f = b.f) := by ext; rw [h]
+  coe_injective a b (h : a.f = b.f) := by ext; rw [h]
 
 instance : Category (SupportDatum C) where
 Hom X Y := SupportDatumHom X Y
@@ -223,7 +226,7 @@ open SupportDatum
 
 variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
   [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
-variable (X Y : SupportDatum C) (I J : Set C) (G : C)
+variable (X Y : SupportDatum C) (I J : ObjectProperty C) (G : C)
 
 @[simp]
 theorem supp'_isZero : X.supp' IsZero = ⊥ := by
@@ -291,42 +294,26 @@ theorem supp'_level {n : ℕ} : X.supp' (⟪I⟫' (n + 1)) = X.supp' I := by
     Set.bot_eq_empty, Set.empty_union]
   | succ k ih => rw [level, supp'_dia, ih, Set.union_self]
 
-theorem supp'_iUnion {ι : Type*} {s : ι → Set C} : X.supp' (⋃ i, s i) = ⋃ i, X.supp' (s i) := by
-  ext x
-  rw [mem_supp', Set.mem_iUnion]
-  constructor
-  intro h
-  obtain ⟨a, ha, hx⟩ := h
-  rw [Set.mem_iUnion] at ha
-  obtain ⟨i, hi⟩ := ha
-  use i
-  rw [mem_supp']
-  exact ⟨a, hi, hx⟩
-  intro h
-  obtain ⟨i, hi⟩ := h
-  rw [mem_supp'] at hi
-  obtain ⟨a, ha, hx⟩ := hi
-  use a
-  rw [Set.mem_iUnion]
-  exact ⟨⟨i, ha⟩, hx⟩
-
-
 @[simp]
-theorem supp'_singleton_eq_supp : X.supp' {G} = X.supp G := by
-  apply le_antisymm _ (X.supp_subset_supp' (rfl : G ∈ {G}))
-  intro x hx
-  rw [mem_supp'] at hx
-  obtain ⟨_, rfl, hx⟩ := hx
-  exact hx
+theorem supp'_singleton_eq_supp : X.supp' (Singleton G) = X.supp G := by
+  apply le_antisymm _ _
+  · intro x hx
+    rw [mem_supp'] at hx
+    obtain ⟨_, rfl, hx⟩ := hx
+    exact hx
+  · exact (X.supp_subset_supp' rfl)
 
 @[simp]
 theorem supp'_thick_cl : X.supp' ⟪I⟫ = X.supp' I := by
-  rw [thick_cl', supp'_iUnion]
-  apply le_antisymm _ (Set.subset_iUnion_of_subset 1 (le_of_eq (supp'_level X I).symm))
-  apply Set.iUnion_subset (fun i => ?_)
-  cases i <;> simp
+  ext x
+  refine ⟨fun hx => ?_, fun hx => ?_⟩
+  · obtain ⟨y, ⟨⟨n, hn⟩, hy₂⟩⟩ := hx
+    rw [←supp'_level (n := n)]
+    refine ⟨y, level_mono (Nat.le_succ _) _ hn, hy₂⟩
+  · refine X.supp'_mono (?_ : I ≤ ⟪I⟫) hx
+    intro x hx; use 1; rw [level_one]; exact smd.of_mem (addc.of_mem hx)
 
-theorem not_mem_supp'_self (P : ThickSubcategory C) : P ∉ (UnivSupport C).supp' P := by
+theorem not_mem_supp'_self (P : ThickSubcategory C) : P ∉ (UnivSupport C).supp' P.carrier.Mem := by
   rw [mem_supp']
   tauto
 
@@ -336,14 +323,19 @@ theorem is_generator_iff_supp : is_generator G ↔ ∀ X : SupportDatum C, X.sup
   refine ⟨fun hg X => ?_, ?_⟩
   . rw [←supp'_singleton_eq_supp, ←supp'_thick_cl, hg]
   . contrapose!
-    intro (h : ⟪{G}⟫ ≠ ⊤)
-    obtain ⟨a, ha⟩ := (Set.ne_univ_iff_exists_notMem _).mp h
+    intro (h : ⟪Singleton G⟫ ≠ ⊤)
+    have H : ∃ a, ¬ (⟪Singleton G⟫ a) := by
+      by_contra!
+      apply h
+      ext
+      tauto
+    obtain ⟨a, ha⟩ := H
     use UnivSupport C
     intro H
     rw [Set.ext_iff] at H
     rw [←supp'_singleton_eq_supp, ←supp'_thick_cl] at H
-    apply not_mem_supp'_self (ThickSubcategory.thick_cl {G})
-    apply (H (ThickSubcategory.thick_cl {G})).mpr
+    apply not_mem_supp'_self (ThickSubcategory.thick_cl (Singleton G))
+    apply (H (ThickSubcategory.thick_cl (Singleton G))).mpr
     rw [mem_supp']
     exact ⟨a, trivial, ha⟩
 

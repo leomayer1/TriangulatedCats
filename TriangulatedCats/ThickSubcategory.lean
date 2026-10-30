@@ -30,7 +30,7 @@ smd_mem' {X Y : C} : (X ⊞ Y) ∈ carrier → X ∈ carrier
 
 instance : SetLike (ThickSubcategory C) C where
   coe X := X.carrier
-  coe_injective' X Y (h : X.carrier = Y.carrier) := by ext; rw [h]
+  coe_injective X Y (h : X.carrier = Y.carrier) := by ext; rw [h]
 
 end thick
 
@@ -76,8 +76,9 @@ section instances
 
 open ObjectProperty
 
-instance : ContainsZero (P : Set C) := ⟨0, isZero_zero _, P.zero_mem⟩
-instance : IsStableUnderShift (P : Set C) ℤ := ⟨fun _ => ⟨fun _ hP => P.shift_mem hP⟩⟩
+instance : ContainsZero (↑P : Set C).Mem := ⟨0, isZero_zero _, P.zero_mem⟩
+
+instance : IsStableUnderShift (↑P : Set C).Mem ℤ := ⟨fun _ => ⟨fun _ hP => P.shift_mem hP⟩⟩
 
 end instances
 
@@ -85,7 +86,7 @@ end instances
   TODO: Prove that the preimage of a thick subcategory is a thick subategory
 -/
 def kernel : ThickSubcategory C where
-  carrier := F.kernel
+  carrier := .ofPred F.kernel
   zero_mem' := Functor.map_isZero _ (isZero_zero C)
   shift_mem' {i} X hX := IsZero.of_iso (Functor.map_isZero _ hX) ((F.commShiftIso i).app _)
   iso_mem' hX := fun φ => IsZero.of_iso hX (F.mapIso φ.symm)

@@ -31,8 +31,8 @@ variable {C : Type*} [Category C] [HasZeroObject C] [Preadditive C]
 
 variable (A B : ThickSubcategory C) (S : SOD C) (X : C)
 
-def IsLeftAdmissible := IsRightAdjoint (ι A.carrier)
-def IsRightAdmissible := IsLeftAdjoint (ι B.carrier)
+def IsLeftAdmissible := IsRightAdjoint (ι A.carrier.Mem)
+def IsRightAdmissible := IsLeftAdjoint (ι B.carrier.Mem)
 
 
 namespace SOD
@@ -53,7 +53,7 @@ def η : S.B_obj X ⟶ X := (S.Triang X).mor₁
 
 variable {S : SOD C} {X Y : C}
 
-def Triang_dist : S.Triang X ∈ distTriang C :=
+lemma Triang_dist : S.Triang X ∈ distTriang C :=
   (choose_spec $ choose_spec $ choose_spec (choose_spec (choose_spec $ S.prop X).2).2)
 
 @[simp]
@@ -128,7 +128,7 @@ theorem η_isIso (hX : X ∈ S.B) : IsIso (S.η X) := ⟨by
   rw [hw₁, hw₂]⟩
 
 @[simps]
-def A_func : C ⥤ FullSubcategory S.A.carrier where
+def A_func : C ⥤ FullSubcategory S.A.carrier.Mem where
   obj X := ⟨_, A_obj_mem⟩
   map f := ⟨S.A_map f⟩
   map_id X := by
@@ -141,7 +141,7 @@ def A_func : C ⥤ FullSubcategory S.A.carrier where
     simp
 
 @[simps!]
-def B_func : C ⥤ FullSubcategory S.B.carrier where
+def B_func : C ⥤ FullSubcategory S.B.carrier.Mem where
   obj X := ⟨_, B_obj_mem⟩
   map f := ⟨S.B_map f⟩
   map_id X := by
@@ -153,20 +153,22 @@ def B_func : C ⥤ FullSubcategory S.B.carrier where
     apply eq_B_map
     simp
 
+set_option backward.isDefEq.respectTransparency false
+
 @[simps]
-def A_unit : 𝟭 C ⟶ A_func ⋙ (ι S.A.carrier) where
+def A_unit : 𝟭 C ⟶ A_func ⋙ (ι S.A.carrier.Mem) where
   app X := S.ε X
 
 @[simps]
-def A_counit : (ι S.A.carrier) ⋙ A_func ⟶ 𝟭 _ where
+def A_counit : (ι S.A.carrier.Mem) ⋙ A_func ⟶ 𝟭 _ where
   app X := ⟨(inv (S.ε X.obj) (I := ε_isIso X.property))⟩
 
 @[simps]
-def B_counit : B_func ⋙ (ι S.B.carrier) ⟶ 𝟭 C where
+def B_counit : B_func ⋙ (ι S.B.carrier.Mem) ⟶ 𝟭 C where
   app X := S.η X
 
 @[simps]
-def B_unit : 𝟭 _ ⟶ (ι S.B.carrier) ⋙ B_func where
+def B_unit : 𝟭 _ ⟶ (ι S.B.carrier.Mem) ⋙ B_func where
   app X := ⟨(inv (S.η X.obj) (I := η_isIso X.property))⟩
   naturality X Y f := by
     ext
@@ -181,7 +183,7 @@ theorem isLeftAdmissible : IsLeftAdmissible S.A :=
       have h : S.A_map (S.ε X) = S.ε (S.A_obj X) := by
         apply eq_A_map
         simp
-      ext; simp [h]
+      ext; simp [h]; rfl
   }⟩⟩
 
 theorem isRightAdmissible : IsRightAdmissible S.B :=
@@ -192,34 +194,34 @@ theorem isRightAdmissible : IsRightAdmissible S.B :=
       have h : S.B_map (S.η X) = S.η (S.B_obj X) := by
         apply eq_B_map
         simp
-      ext; simp [h]
+      ext; simp [h]; rfl
   }⟩⟩
 
 end SOD
 
-def RightComplement (B : Set C) [IsStableUnderShift B ℤ] : ThickSubcategory C where
+def RightComplement (B : Set C) [IsStableUnderShift B.Mem ℤ] : ThickSubcategory C where
   carrier := {c : C | ∀ b ∈ B, ∀ f : b ⟶ c, f = 0}
   zero_mem' b hb f := zero_of_to_zero f
   shift_mem' {i} {a} ha b hb f := by
     rw [←map_eq_zero_iff (shiftFunctor C (-i)), ←IsIso.comp_right_eq_zero _ (shiftShiftNeg _ _).hom]
-    apply ha (b⟦-i⟧) (le_shift B _ _ hb)
+    apply ha (b⟦-i⟧) (le_shift B.Mem _ _ hb)
   iso_mem' {a b ha} φ c hc f := by
     rw [←IsIso.comp_right_eq_zero _ φ.inv]
     apply ha _ hc
   obj₃_mem' {T} hT hT₁ hT₂ b hb f := by
     have H : f ≫ T.mor₃ = 0 := by
       rw [←map_eq_zero_iff (shiftFunctor C (-1 : ℤ)), ←IsIso.comp_right_eq_zero _ (shiftShiftNeg _ _).hom]
-      apply hT₁ _ (le_shift B _ _ hb)
+      apply hT₁ _ (le_shift B.Mem _ _ hb)
     obtain ⟨g, rfl⟩ := Triangle.coyoneda_exact₃ T hT _ H
     rw [(hT₂ b hb g), zero_comp]
   smd_mem' {_ _ h} _ hb _ := zero_of_comp_mono biprod.inl (h _ hb _)
 
-def LeftComplement (A : Set C) [IsStableUnderShift A ℤ] : ThickSubcategory C where
+def LeftComplement (A : Set C) [IsStableUnderShift A.Mem ℤ] : ThickSubcategory C where
   carrier := {c : C | ∀ a ∈ A, ∀ f : c ⟶ a, f = 0}
   zero_mem' _ _ f := zero_of_from_zero f
   shift_mem' {i} {b} hb a ha f := by
     rw [←map_eq_zero_iff (shiftFunctor C (-i)), ←IsIso.comp_left_eq_zero  (shiftShiftNeg _ _).inv _]
-    apply hb (a⟦-i⟧) (le_shift A _ _ ha)
+    apply hb (a⟦-i⟧) (le_shift A.Mem _ _ ha)
   iso_mem' {a b ha} φ c hc f := by
     rw [←IsIso.comp_left_eq_zero φ.hom _]
     apply ha _ hc
@@ -227,7 +229,7 @@ def LeftComplement (A : Set C) [IsStableUnderShift A ℤ] : ThickSubcategory C w
     obtain ⟨g, rfl⟩ := Triangle.yoneda_exact₃ T hT f (hT₂ _ ha _)
     have hg : g = 0 := by
       rw [←map_eq_zero_iff (shiftFunctor C (-1)), ←IsIso.comp_left_eq_zero  (shiftShiftNeg _ _).inv _]
-      apply hT₁ (a⟦-1⟧) (le_shift A _ _ ha)
+      apply hT₁ (a⟦-1⟧) (le_shift A.Mem _ _ ha)
     rw [hg, comp_zero]
   smd_mem' {_ _ h} _ hb _ := zero_of_epi_comp biprod.fst (h _ hb _)
 
@@ -238,14 +240,14 @@ notation A "ᗮ" => RightComplement A
 
 variable {A B : ThickSubcategory C}
 
-def unitTriang {π : C ⥤ FullSubcategory A.carrier} (adj : π ⊣ ι A.carrier) (X : C) : Triangle C :=
+def unitTriang {π : C ⥤ FullSubcategory A.carrier.Mem} (adj : π ⊣ ι A.carrier.Mem) (X : C) : Triangle C :=
   let h := distinguished_cocone_triangle₁ (adj.unit.app X)
   Triangle.mk
     (Exists.choose $ Exists.choose_spec h)
     (adj.unit.app X)
     (Exists.choose $ Exists.choose_spec $ Exists.choose_spec h)
 
-theorem unitTriang_dist {π : C ⥤ FullSubcategory A.carrier} {adj : π ⊣ ι A.carrier} {X : C} :
+theorem unitTriang_dist {π : C ⥤ FullSubcategory A.carrier.Mem} {adj : π ⊣ ι A.carrier.Mem} {X : C} :
     (unitTriang adj X) ∈ distTriang C :=
   let h := distinguished_cocone_triangle₁ (adj.unit.app X)
   Exists.choose_spec $ Exists.choose_spec $ Exists.choose_spec h
@@ -255,6 +257,7 @@ open Function
 theorem yoneda_iso_shift {X Y Z : C} {i : ℤ} (f : X ⟶ Y)
     (hf : Bijective ((f ≫ ·) : (Y ⟶ Z) → (X ⟶ Z))) :
   Bijective ((f⟦i⟧' ≫ .) : (Y⟦i⟧ ⟶ Z⟦i⟧) → (X⟦i⟧ ⟶ Z⟦i⟧)) := sorry
+
 /-
   Might need to give thick subcategories a triangulated category instance?
   And prove that adjoints preserve shifts and are triangulated

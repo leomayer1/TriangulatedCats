@@ -26,40 +26,26 @@ def BiprodTriangle (T T' : Triangle C) : Triangle C := Triangle.mk (biprod.map T
     2) a proof that P is closed under sums, products, etc
     3) a proof that the five lemma holds for triangles satisfying P
   -/
+set_option backward.isDefEq.respectTransparency false in
 theorem dist_biprodTriangle (hT : T ∈ distTriang C) (hT' : T' ∈ distTriang C) :
     BiprodTriangle T T' ∈ distTriang C := by
   have H := productTriangle_distinguished (fun j => WalkingPair.casesOn j T T')
     (fun j => WalkingPair.casesOn j hT hT')
   apply isomorphic_distinguished _ H
   apply Triangle.isoMk _ _ ?_ ?_ ?_ ?_ ?_ ?_
-  . apply Iso.mk ?_ ?_ (?_) (?_)
+  all_goals try
+    apply Iso.mk ?_ ?_ ?_ ?_
     . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
       exact biprod.fst
       exact biprod.snd
     . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . apply biprod.hom_ext <;> simp [Pi.lift_π]
-    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
-  . apply Iso.mk ?_ ?_ (?_) (?_)
-    . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
-      exact biprod.fst
-      exact biprod.snd
-    . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . apply biprod.hom_ext <;> simp [Pi.lift_π]
-    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
-  . apply Iso.mk ?_ ?_ (?_) (?_)
-    . apply Pi.lift fun j => WalkingPair.casesOn j ?_ ?_
-      exact biprod.fst
-      exact biprod.snd
-    . apply biprod.lift (Pi.π _ WalkingPair.left) (Pi.π _ WalkingPair.right)
-    . apply biprod.hom_ext <;> simp [Pi.lift_π]
-    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp [Pi.lift_π])
-  · apply Pi.hom_ext
+    . apply biprod.hom_ext <;> simp
+    . exact Pi.hom_ext _ _ fun b => (by cases b <;> simp)
+  all_goals try
+    apply Pi.hom_ext
     intro j
-    cases j <;> simp [Pi.map_π, Pi.lift_π, Pi.lift_π_assoc]
-  · apply Pi.hom_ext
-    intro j
-    cases j <;> simp [Pi.map_π, Pi.lift_π, Pi.lift_π_assoc]
+    cases j <;> simp [Pi.map_π]
   · simp [←assoc]
     apply Pi.hom_ext
     intro j
-    cases j <;> apply biprod.hom_ext' <;> simp [Pi.lift_π, ←Functor.map_comp, Pi.lift_π_assoc]
+    cases j <;> apply biprod.hom_ext' <;> simp [←Functor.map_comp]
