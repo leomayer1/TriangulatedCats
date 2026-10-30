@@ -69,10 +69,10 @@ def is_strong_generator (G : C) := ∃ n : ℕ, (⟪Singleton G⟫' (n + 1)) = �
 noncomputable
 def gen_time (G : C) := sInf {n | (⟪Singleton G⟫' (n + 1)) = ⊤}
 
+variable (C)
+
 noncomputable
-def dimension (C : Type*) [Category C] [Preadditive C] [HasZeroObject C] [HasShift C ℤ]
-    [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C] :=
-  sInf { n : ℕ∞ | ∃ G : C, is_strong_generator G ∧ n = gen_time G}
+def dimension := sInf { n : ℕ∞ | ∃ G : C, is_strong_generator G ∧ n = gen_time G}
 
 end defs
 
@@ -82,11 +82,6 @@ variable {C : Type*} [Category C] [Preadditive C] [HasZeroObject C] [HasShift C 
   [∀ n : ℤ, Functor.Additive (shiftFunctor C n)] [Pretriangulated C]
 variable {I J K : ObjectProperty C}
 variable (n m : ℕ)
-
-#leansearch "to prove f ≫ g = f ≫ g', it suffices to show g = g'."
-
-set_option linter.tacticCheckInstances true
-set_option allowUnsafeReducibility true
 
 set_option backward.isDefEq.respectTransparency false in
 theorem star_assoc [IsTriangulated C] : I ⋆ J ⋆ K = I ⋆ (J ⋆ K) := by
